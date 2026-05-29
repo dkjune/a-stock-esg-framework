@@ -1,0 +1,48 @@
+from setuptools import setup, find_packages
+
+setup(
+    name="a-stock-esg-framework",
+    version="1.0.0",
+    author="A-Stock ESG Team",
+    description="A股适配版富士通AI分析逻辑框架 - ESG披露智能分析系统",
+    long_description=open("README.md", encoding="utf-8").read(),
+    long_description_content_type="text/markdown",
+    packages=find_packages(where="src"),
+    package_dir={"": "src"},
+    python_requires=">=3.9",
+    install_requires=[
+        "numpy>=1.21.0",
+        "pandas>=1.3.0",
+        "jieba>=0.42.1",
+        "transformers>=4.20.0",
+        "torch>=1.12.0",
+        "PyPDF2>=3.0.0",
+        "pdfplumber>=0.9.0",
+        "beautifulsoup4>=4.11.0",
+        "lxml>=4.9.0",
+        "python-docx>=0.8.11",
+        "plotly>=5.13.0",
+        "matplotlib>=3.6.0",
+        "networkx>=2.8.0",
+        "flask>=2.3.0",
+        "pydantic>=1.10.0",
+        "sqlalchemy>=2.0.0",
+    ],
+    extras_require={
+        "dev": [
+            "pytest>=7.2.0",
+            "black>=23.0.0",
+            "flake8>=6.0.0",
+            "mypy>=1.0.0",
+        ],
+    },
+    classifiers=[
+        "Development Status :: 4 - Beta",
+        "Intended Audience :: Financial and Insurance Industry",
+        "License :: OSI Approved :: MIT License",
+        "Programming Language :: Python :: 3.9",
+        "Programming Language :: Python :: 3.10",
+        "Programming Language :: Python :: 3.11",
+        "Topic :: Office/Business :: Financial",
+    ],
+)

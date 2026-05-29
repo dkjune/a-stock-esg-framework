@@ -1,0 +1,66 @@
+# A股ESG框架配置文件
+
+[project]
+name = "a-stock-esg-framework"
+version = "1.0.0"
+description = "A股适配版富士通AI分析逻辑框架"
+
+[market]
+default_market_type = "主板"
+supported_market_types = ["主板", "科创板", "创业板", "北交所"]
+
+[industry]
+default_industry = "电子"
+supported_industries = [
+    "银行", "证券", "保险", "房地产", "建筑", "建筑材料",
+    "化工", "钢铁", "有色金属", "电子", "计算机", "通信",
+    "传媒", "医药生物", "食品饮料", "纺织服饰", "轻工制造",
+    "汽车", "家用电器", "机械设备", "公用事业", "交通运输",
+    "煤炭", "石油石化", "农林牧渔", "国防军工"
+]
+
+[compliance]
+# 合规检查配置
+mandatory_items_threshold = 0.8
+recommendation_threshold = 0.6
+
+[nlp]
+# NLP配置
+language = "zh-CN"
+model_name = "bert-base-chinese"
+
+[visualization]
+# 可视化配置
+dashboard_theme = "default"
+chart_width = "100%"
+chart_height = "800px"
+
+[knowledge_graph]
+# 知识图谱配置
+max_path_depth = 5
+correlation_sample_size = 10
+
+[data_sources]
+# 数据源配置
+annual_report = "年报"
+semi_annual_report = "半年报"
+esg_report = "ESG报告"
+social_responsibility_report = "社会责任报告"
+sustainability_report = "可持续发展报告"
+
+[rating_agencies]
+# 评级机构配置
+agencies = [
+    "中证ESG",
+    "华证ESG",
+    "商道融绿",
+    "Wind ESG"
+]
+
+[dual_carbon]
+# 双碳目标配置
+peak_carbon_year = 2030
+carbon_neutral_year = 2060
+scope1_required = true
+scope2_required = true
+scope3_recommended = true
