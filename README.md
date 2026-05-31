@@ -219,6 +219,20 @@ python examples/basic_usage.py
 python examples/astock_data_integration.py
 ```
 
+## 致谢
+
+本项目集成了以下开源项目的部分能力：
+
+### [simonlin1212/a-stock-data](https://github.com/simonlin1212/a-stock-data)
+
+A股全栈数据工具包，提供7层架构、27个端点、13个数据源。
+
+- **作者**: Simon 林
+- **许可证**: [Apache License 2.0](https://github.com/simonlin1212/a-stock-data/blob/main/LICENSE)
+- **用途**: 本项目的 `astock_integration.py` 模块参考了其数据获取逻辑，用于获取A股实时行情、财务数据、研报等信息
+
+感谢 Simon 林 开源的优质数据工具！
+
 ## 贡献
 
 欢迎贡献代码和提出建议！

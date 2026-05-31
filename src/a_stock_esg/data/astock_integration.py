@@ -1,6 +1,12 @@
 """
 A股数据集成模块
+
 集成 simonlin1212/a-stock-data 数据源
+原始项目: https://github.com/simonlin1212/a-stock-data
+许可证: Apache License 2.0
+作者: Simon 林
+
+本模块参考了 a-stock-data 的数据获取逻辑，用于为ESG分析提供A股基础数据支持。
 """
 
 from dataclasses import dataclass, field
