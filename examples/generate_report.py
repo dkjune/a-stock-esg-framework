@@ -74,7 +74,7 @@ def generate_html_report():
         """,
     }
     
-    # 模拟财务数据
+    # 模拟财务数据（每家公司数据不同）
     financial_data = {
         "600886": {
             "current": {
@@ -82,7 +82,7 @@ def generate_html_report():
                 "revenue": 2000000,
                 "equity": 4000000,
                 "total_assets": 8000000,
-                "total_debt": 4000000,
+                "total_debt": 3600000,  # 负债率45%
                 "operating_cash_flow": 800000,
                 "rd_expense": 50000,
                 "profit_total": 600000,
@@ -92,7 +92,7 @@ def generate_html_report():
                 "revenue": 1800000,
                 "equity": 3800000,
                 "total_assets": 7500000,
-                "total_debt": 3700000,
+                "total_debt": 3500000,
             },
         },
         "600863": {
@@ -101,7 +101,7 @@ def generate_html_report():
                 "revenue": 1200000,
                 "equity": 2500000,
                 "total_assets": 5000000,
-                "total_debt": 2500000,
+                "total_debt": 3250000,  # 负债率65%
                 "operating_cash_flow": 500000,
                 "rd_expense": 30000,
                 "profit_total": 350000,
@@ -111,7 +111,7 @@ def generate_html_report():
                 "revenue": 1100000,
                 "equity": 2400000,
                 "total_assets": 4800000,
-                "total_debt": 2400000,
+                "total_debt": 3100000,
             },
         },
         "600011": {
@@ -120,7 +120,7 @@ def generate_html_report():
                 "revenue": 3000000,
                 "equity": 6000000,
                 "total_assets": 12000000,
-                "total_debt": 6000000,
+                "total_debt": 7800000,  # 负债率65%
                 "operating_cash_flow": 1200000,
                 "rd_expense": 80000,
                 "profit_total": 900000,
@@ -130,7 +130,7 @@ def generate_html_report():
                 "revenue": 2800000,
                 "equity": 5800000,
                 "total_assets": 11500000,
-                "total_debt": 5700000,
+                "total_debt": 7500000,
             },
         },
     }
