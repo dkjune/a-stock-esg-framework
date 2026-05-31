@@ -272,7 +272,7 @@ def generate_html_report():
 
 
 def generate_html_content(results):
-    """生成HTML内容"""
+    """生成HTML内容 - Anthropic风格"""
     
     now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     
@@ -285,73 +285,265 @@ def generate_html_content(results):
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>A股电力行业ESG+中特估分析报告</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         * {{ margin: 0; padding: 0; box-sizing: border-box; }}
-        body {{ font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f5f7fa; color: #333; line-height: 1.6; }}
-        .container {{ max-width: 1200px; margin: 0 auto; padding: 20px; }}
+        body {{ 
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; 
+            background: #faf9f7; 
+            color: #1a1a1a; 
+            line-height: 1.6; 
+            -webkit-font-smoothing: antialiased;
+        }}
+        .container {{ max-width: 1100px; margin: 0 auto; padding: 40px 24px; }}
         
-        .header {{ background: linear-gradient(135deg, #1a365d 0%, #2c5282 100%); color: white; padding: 40px; border-radius: 12px; margin-bottom: 30px; }}
-        .header h1 {{ font-size: 28px; margin-bottom: 10px; }}
-        .header .subtitle {{ opacity: 0.9; font-size: 14px; }}
-        .header .meta {{ margin-top: 15px; font-size: 12px; opacity: 0.8; }}
+        .header {{ 
+            background: #ffffff; 
+            border: 1px solid #e5e5e5;
+            padding: 48px; 
+            border-radius: 16px; 
+            margin-bottom: 32px;
+            text-align: center;
+        }}
+        .header h1 {{ 
+            font-size: 32px; 
+            font-weight: 700; 
+            color: #1a1a1a; 
+            margin-bottom: 12px;
+            letter-spacing: -0.02em;
+        }}
+        .header .subtitle {{ 
+            color: #6b6b6b; 
+            font-size: 16px;
+            margin-bottom: 20px;
+        }}
+        .header .meta {{ 
+            font-size: 13px; 
+            color: #999;
+            padding-top: 20px;
+            border-top: 1px solid #f0f0f0;
+        }}
         
-        .summary {{ display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 30px; }}
-        .summary-card {{ background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.08); text-align: center; }}
-        .summary-card .value {{ font-size: 32px; font-weight: bold; color: #2c5282; }}
-        .summary-card .label {{ color: #666; margin-top: 5px; font-size: 14px; }}
+        .summary {{ 
+            display: grid; 
+            grid-template-columns: repeat(4, 1fr); 
+            gap: 16px; 
+            margin-bottom: 32px; 
+        }}
+        .summary-card {{ 
+            background: #ffffff; 
+            padding: 24px; 
+            border-radius: 12px; 
+            border: 1px solid #e5e5e5;
+            text-align: center;
+            transition: box-shadow 0.2s;
+        }}
+        .summary-card:hover {{
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+        }}
+        .summary-card .value {{ 
+            font-size: 36px; 
+            font-weight: 700; 
+            color: #1a1a1a;
+            letter-spacing: -0.02em;
+        }}
+        .summary-card .label {{ 
+            color: #6b6b6b; 
+            margin-top: 4px; 
+            font-size: 13px;
+            font-weight: 500;
+        }}
         
-        .section {{ background: white; padding: 25px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.08); margin-bottom: 25px; }}
-        .section-title {{ font-size: 20px; font-weight: 600; color: #1a365d; margin-bottom: 20px; padding-bottom: 10px; border-bottom: 2px solid #e2e8f0; }}
+        .section {{ 
+            background: #ffffff; 
+            padding: 32px; 
+            border-radius: 12px; 
+            border: 1px solid #e5e5e5;
+            margin-bottom: 24px; 
+        }}
+        .section-title {{ 
+            font-size: 18px; 
+            font-weight: 600; 
+            color: #1a1a1a; 
+            margin-bottom: 24px; 
+            padding-bottom: 16px; 
+            border-bottom: 1px solid #f0f0f0; 
+        }}
         
         table {{ width: 100%; border-collapse: collapse; }}
-        th, td {{ padding: 12px 15px; text-align: left; border-bottom: 1px solid #e2e8f0; }}
-        th {{ background: #f8fafc; font-weight: 600; color: #4a5568; }}
-        tr:hover {{ background: #f7fafc; }}
+        th, td {{ 
+            padding: 14px 16px; 
+            text-align: left; 
+            border-bottom: 1px solid #f5f5f5; 
+        }}
+        th {{ 
+            font-weight: 600; 
+            color: #6b6b6b;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }}
+        tr:hover {{ background: #faf9f7; }}
         
-        .rank {{ display: inline-block; padding: 4px 12px; border-radius: 20px; font-weight: 600; font-size: 14px; }}
-        .rank-aaa {{ background: #c6f6d5; color: #22543d; }}
-        .rank-aa {{ background: #bee3f8; color: #2a4365; }}
-        .rank-a {{ background: #e9d8fd; color: #44337a; }}
-        .rank-bbb {{ background: #fefcbf; color: #744210; }}
-        .rank-bb {{ background: #fed7d7; color: #742a2a; }}
+        .rank {{ 
+            display: inline-block; 
+            padding: 4px 10px; 
+            border-radius: 6px; 
+            font-weight: 600; 
+            font-size: 12px;
+            letter-spacing: 0.02em;
+        }}
+        .rank-aaa {{ background: #dcfce7; color: #166534; }}
+        .rank-aa {{ background: #dbeafe; color: #1e40af; }}
+        .rank-a {{ background: #f3e8ff; color: #7c3aed; }}
+        .rank-bbb {{ background: #fef3c7; color: #92400e; }}
+        .rank-bb {{ background: #fee2e2; color: #991b1b; }}
         
-        .score-bar {{ height: 8px; background: #e2e8f0; border-radius: 4px; overflow: hidden; }}
-        .score-fill {{ height: 100%; background: linear-gradient(90deg, #48bb78, #38a169); transition: width 0.3s; }}
+        .score-bar {{ 
+            height: 6px; 
+            background: #f0f0f0; 
+            border-radius: 3px; 
+            overflow: hidden;
+            margin-top: 6px;
+        }}
+        .score-fill {{ 
+            height: 100%; 
+            background: linear-gradient(90deg, #f97316, #ea580c); 
+            border-radius: 3px;
+        }}
         
-        .company-card {{ background: white; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.08); margin-bottom: 20px; overflow: hidden; }}
-        .company-header {{ background: linear-gradient(135deg, #4299e1 0%, #3182ce 100%); color: white; padding: 20px; }}
-        .company-header h3 {{ font-size: 18px; margin-bottom: 5px; }}
-        .company-body {{ padding: 20px; }}
+        .company-card {{ 
+            background: #ffffff; 
+            border-radius: 12px; 
+            border: 1px solid #e5e5e5;
+            margin-bottom: 24px; 
+            overflow: hidden;
+            transition: box-shadow 0.2s;
+        }}
+        .company-card:hover {{
+            box-shadow: 0 4px 16px rgba(0,0,0,0.06);
+        }}
+        .company-header {{ 
+            background: #1a1a1a; 
+            color: white; 
+            padding: 24px 32px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }}
+        .company-header h3 {{ 
+            font-size: 20px; 
+            font-weight: 600;
+            letter-spacing: -0.01em;
+        }}
+        .company-header .meta-info {{
+            font-size: 14px;
+            opacity: 0.8;
+        }}
+        .company-body {{ padding: 32px; }}
         
-        .metrics-grid {{ display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; margin-bottom: 20px; }}
-        .metric {{ text-align: center; padding: 15px; background: #f8fafc; border-radius: 8px; }}
-        .metric .value {{ font-size: 24px; font-weight: bold; color: #2c5282; }}
-        .metric .label {{ font-size: 12px; color: #666; margin-top: 5px; }}
+        .metrics-grid {{ 
+            display: grid; 
+            grid-template-columns: repeat(6, 1fr); 
+            gap: 16px; 
+            margin-bottom: 32px; 
+        }}
+        .metric {{ 
+            text-align: center; 
+            padding: 20px 12px; 
+            background: #faf9f7; 
+            border-radius: 10px;
+            border: 1px solid #f0f0f0;
+        }}
+        .metric .value {{ 
+            font-size: 28px; 
+            font-weight: 700; 
+            color: #1a1a1a;
+            letter-spacing: -0.02em;
+        }}
+        .metric .label {{ 
+            font-size: 12px; 
+            color: #6b6b6b; 
+            margin-top: 4px;
+            font-weight: 500;
+        }}
         
-        .insights {{ margin-top: 20px; }}
-        .insight-item {{ display: flex; align-items: flex-start; margin-bottom: 10px; padding: 10px; background: #f7fafc; border-radius: 6px; border-left: 3px solid #4299e1; }}
-        .insight-icon {{ margin-right: 10px; font-size: 16px; }}
+        .insights {{ margin-top: 32px; }}
+        .insights h4 {{ 
+            font-size: 14px; 
+            font-weight: 600; 
+            color: #1a1a1a; 
+            margin-bottom: 16px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }}
+        .insight-item {{ 
+            display: flex; 
+            align-items: flex-start; 
+            margin-bottom: 12px; 
+            padding: 16px; 
+            background: #faf9f7; 
+            border-radius: 8px;
+            border-left: 3px solid #f97316;
+        }}
+        .insight-icon {{ margin-right: 12px; font-size: 16px; }}
         
-        .risk-flag {{ display: inline-block; padding: 3px 8px; border-radius: 4px; font-size: 12px; margin-right: 5px; }}
-        .risk-low {{ background: #c6f6d5; color: #22543d; }}
-        .risk-medium {{ background: #fefcbf; color: #744210; }}
-        .risk-high {{ background: #fed7d7; color: #742a2a; }}
+        .footer {{ 
+            text-align: center; 
+            padding: 32px 0; 
+            color: #999; 
+            font-size: 13px;
+            border-top: 1px solid #e5e5e5;
+            margin-top: 40px;
+        }}
         
-        .footer {{ text-align: center; padding: 20px; color: #666; font-size: 12px; }}
+        .recommendation {{ 
+            padding: 20px; 
+            border-radius: 10px; 
+            margin-top: 24px;
+            font-size: 15px;
+        }}
+        .rec-buy {{ 
+            background: #f0fdf4; 
+            border: 1px solid #bbf7d0;
+            color: #166534;
+        }}
+        .rec-hold {{ 
+            background: #eff6ff; 
+            border: 1px solid #bfdbfe;
+            color: #1e40af;
+        }}
+        .rec-caution {{ 
+            background: #fffbeb; 
+            border: 1px solid #fde68a;
+            color: #92400e;
+        }}
         
-        .recommendation {{ padding: 15px; border-radius: 8px; margin-top: 15px; }}
-        .rec-buy {{ background: #c6f6d5; border: 1px solid #9ae6b4; }}
-        .rec-hold {{ background: #bee3f8; border: 1px solid #90cdf4; }}
-        .rec-caution {{ background: #fefcbf; border: 1px solid #f6e05e; }}
+        .badge {{
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: 0.02em;
+        }}
+        .badge-real {{
+            background: #dcfce7;
+            color: #166534;
+        }}
+        .badge-estimated {{
+            background: #fef3c7;
+            color: #92400e;
+        }}
     </style>
 </head>
 <body>
     <div class="container">
         <div class="header">
-            <h1>A股电力行业ESG+中特估分析报告</h1>
+            <h1>A股电力行业ESG + 中特估分析报告</h1>
             <div class="subtitle">基于中国特色估值体系的投资价值分析</div>
             <div class="meta">
-                生成时间: {now} | 分析框架: A股ESG分析框架 v2.0 | 数据来源: 公开披露信息
+                {now} · A股ESG分析框架 v2.0 · 数据来源: 公开披露信息 + 腾讯财经API
             </div>
         </div>
         
@@ -370,7 +562,7 @@ def generate_html_content(results):
             </div>
             <div class="summary-card">
                 <div class="value">{sum(1 for r in results if r['roe'].roe_change > 0)}</div>
-                <div class="label">ROE提升公司</div>
+                <div class="label">ROE提升</div>
             </div>
         </div>
         
@@ -379,9 +571,9 @@ def generate_html_content(results):
             <table>
                 <thead>
                     <tr>
-                        <th>排名</th>
+                        <th>#</th>
                         <th>公司</th>
-                        <th>股票代码</th>
+                        <th>代码</th>
                         <th>综合得分</th>
                         <th>等级</th>
                         <th>ROE</th>
@@ -400,15 +592,15 @@ def generate_html_content(results):
                     <tr>
                         <td><strong>{i}</strong></td>
                         <td><strong>{r['company']['name']}</strong></td>
-                        <td>{r['company']['code']}</td>
+                        <td style="color: #6b6b6b;">{r['company']['code']}</td>
                         <td>
-                            <div>{r['score'].overall_score:.2f}</div>
+                            <div style="font-weight: 600;">{r['score'].overall_score:.1f}</div>
                             <div class="score-bar"><div class="score-fill" style="width: {r['score'].overall_score}%"></div></div>
                         </td>
                         <td><span class="rank {rank_class}">{r['score'].rank}</span></td>
-                        <td>{r['roe'].current_roe:.2f}%</td>
-                        <td>{r['policy'].overall_score:.2f}</td>
-                        <td><span class="{rec_class}" style="padding: 5px 10px; border-radius: 5px; font-size: 12px;">{r['score'].recommendation[:15]}...</span></td>
+                        <td style="font-weight: 500;">{r['roe'].current_roe:.1f}%</td>
+                        <td style="font-weight: 500;">{r['policy'].overall_score:.1f}</td>
+                        <td><span class="{rec_class}" style="padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: 500;">{r['score'].recommendation[:12]}</span></td>
                     </tr>
 """
     
@@ -427,50 +619,67 @@ def generate_html_content(results):
         ratio = r['ratio']
         disclosure = r['disclosure']
         compliance = r['compliance']
+        financial = r.get('financial', {})
+        data_source = company.get('data_source', 'estimated')
         
         html += f"""
         <div class="company-card">
             <div class="company-header">
-                <h3>{company['name']} ({company['code']})</h3>
-                <div>综合得分: {score.overall_score:.2f} | 等级: {score.rank} | {score.risk_level}</div>
+                <div>
+                    <h3>{company['name']}</h3>
+                    <div style="font-size: 13px; opacity: 0.7; margin-top: 4px;">{company['code']} · {company.get('market_type', 'A股')}</div>
+                </div>
+                <div class="meta-info">
+                    <div style="font-size: 28px; font-weight: 700;">{score.overall_score:.1f}</div>
+                    <div style="font-size: 13px; opacity: 0.8;">{score.rank} · {score.risk_level}</div>
+                </div>
             </div>
             <div class="company-body">
                 <div class="metrics-grid">
                     <div class="metric">
-                        <div class="value">{roe.current_roe:.2f}%</div>
+                        <div class="value">{roe.current_roe:.1f}%</div>
                         <div class="label">ROE</div>
                     </div>
                     <div class="metric">
-                        <div class="value">{ratio.roa:.2f}%</div>
+                        <div class="value">{ratio.roa:.1f}%</div>
                         <div class="label">ROA</div>
                     </div>
                     <div class="metric">
-                        <div class="value">{ratio.debt_ratio:.2f}%</div>
+                        <div class="value">{ratio.debt_ratio:.1f}%</div>
                         <div class="label">资产负债率</div>
                     </div>
                     <div class="metric">
-                        <div class="value">{policy.overall_score:.2f}</div>
-                        <div class="label">政策匹配度</div>
+                        <div class="value">{policy.overall_score:.0f}</div>
+                        <div class="label">政策匹配</div>
                     </div>
                     <div class="metric">
-                        <div class="value">{disclosure.overall_score:.2f}</div>
+                        <div class="value">{disclosure.overall_score:.0f}</div>
                         <div class="label">披露质量</div>
                     </div>
                     <div class="metric">
-                        <div class="value">{compliance.compliance_score:.2f}</div>
+                        <div class="value">{compliance.compliance_score:.0f}</div>
                         <div class="label">合规评分</div>
                     </div>
                 </div>
                 
+                <div style="display: flex; gap: 16px; margin-bottom: 24px; font-size: 13px; color: #6b6b6b;">
+                    <span>市值: {financial.get('market_cap', 0):.0f}亿</span>
+                    <span>·</span>
+                    <span>PE: {financial.get('pe_ttm', 0):.1f}</span>
+                    <span>·</span>
+                    <span>PB: {financial.get('pb', 0):.2f}</span>
+                    <span class="badge {'badge-real' if data_source == 'real' else 'badge-estimated'}">{data_source}</span>
+                </div>
+                
                 <div class="insights">
-                    <h4 style="margin-bottom: 15px; color: #2c5282;">分析洞察</h4>
+                    <h4>分析洞察</h4>
 """
         
         # 添加洞察
         if roe.roe_change > 0:
             html += f"""
                     <div class="insight-item">
-                        <span class="insight-icon">📈</span>
+                        <span class="insight-icon">↑</span>
                         <span>ROE同比提升{roe.roe_change:+.2f}%，经营改善趋势向好</span>
                     </div>
 """
@@ -478,7 +687,7 @@ def generate_html_content(results):
         if policy.overall_score > 60:
             html += f"""
                     <div class="insight-item">
-                        <span class="insight-icon">🎯</span>
+                        <span class="insight-icon">→</span>
                         <span>政策匹配度较高，符合中特估改革方向</span>
                     </div>
 """
@@ -486,7 +695,7 @@ def generate_html_content(results):
         if disclosure.rhetoric_flags:
             html += f"""
                     <div class="insight-item">
-                        <span class="insight-icon">⚠️</span>
+                        <span class="insight-icon">!</span>
                         <span>发现{len(disclosure.rhetoric_flags)}处话术标记，建议关注披露真实性</span>
                     </div>
 """
@@ -494,7 +703,7 @@ def generate_html_content(results):
         if compliance.compliant_items > 0:
             html += f"""
                     <div class="insight-item">
-                        <span class="insight-icon">✅</span>
+                        <span class="insight-icon">✓</span>
                         <span>合规检查通过{compliance.compliant_items}项，信披规范性较好</span>
                     </div>
 """
@@ -504,7 +713,7 @@ def generate_html_content(results):
                 </div>
                 
                 <div class="recommendation {'rec-buy' if '推荐' in score.recommendation else 'rec-hold'}">
-                    <strong>投资建议:</strong> {score.recommendation}
+                    <strong>投资建议：</strong>{score.recommendation}
                 </div>
             </div>
         </div>
@@ -512,17 +721,16 @@ def generate_html_content(results):
     
     # 添加免责声明
     html += """
-        <div class="section">
-            <div class="section-title">免责声明</div>
-            <p style="color: #666; font-size: 14px;">
-                本报告基于公开信息生成，仅供参考，不构成投资建议。投资有风险，入市需谨慎。
-                报告中的分析结论和建议应结合个人风险承受能力和投资目标综合考虑。
+        <div class="section" style="background: #faf9f7; border: none; padding: 24px;">
+            <p style="color: #6b6b6b; font-size: 13px; line-height: 1.8;">
+                <strong>免责声明：</strong>本报告基于公开信息生成，仅供参考，不构成投资建议。投资有风险，入市需谨慎。
+                报告中的分析结论和建议应结合个人风险承受能力和投资目标综合考虑。数据来源包括腾讯财经API及公开披露文件。
             </p>
         </div>
         
         <div class="footer">
-            <p>A股ESG分析框架 v2.0 | 中特估投资分析模块</p>
-            <p>Generated by A-Stock ESG Framework</p>
+            <p style="margin-bottom: 8px;">A股ESG分析框架 v2.0 · 中特估投资分析模块</p>
+            <p style="color: #ccc;">Powered by A-Stock ESG Framework</p>
         </div>
     </div>
 </body>
