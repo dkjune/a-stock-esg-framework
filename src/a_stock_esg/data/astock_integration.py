@@ -58,8 +58,13 @@ class AStockDataIntegrator:
         self._check_dependencies()
     
     def _check_dependencies(self):
-        """检查依赖是否安装"""
-        required = ["mootdx", "requests", "pandas"]
+        """检查依赖是否安装
+        
+        Returns:
+            List[str]: 缺少的依赖列表
+        """
+        required = ["requests"]
+        optional = ["mootdx", "pandas"]
         missing = []
         
         for pkg in required:
@@ -67,75 +72,158 @@ class AStockDataIntegrator:
                 __import__(pkg)
             except ImportError:
                 missing.append(pkg)
+                print(f"错误: 缺少必需依赖 {pkg}，请运行: pip install {pkg}")
         
-        if missing:
-            print(f"警告: 缺少依赖 {missing}，请运行: pip install {' '.join(missing)}")
+        for pkg in optional:
+            try:
+                __import__(pkg)
+            except ImportError:
+                print(f"警告: 缺少可选依赖 {pkg}，部分功能可能不可用")
+        
+        return missing
     
     def get_stock_info(self, stock_code: str) -> Optional[StockBasicInfo]:
         """
         获取股票基础信息
         
         使用腾讯财经API（不封IP）
+        
+        Args:
+            stock_code: 股票代码，如"600519"
+            
+        Returns:
+            Optional[StockBasicInfo]: 股票信息，失败返回None
+            
+        Raises:
+            TypeError: 当stock_code不是字符串时
+            ValueError: 当stock_code格式无效时
         """
+        # 输入验证
+        if not isinstance(stock_code, str):
+            raise TypeError(f"stock_code必须是字符串，收到{type(stock_code).__name__}")
+        
+        # 股票代码格式验证（6位数字）
+        if not stock_code.isdigit() or len(stock_code) != 6:
+            raise ValueError(f"stock_code必须是6位数字，收到'{stock_code}'")
+        
         try:
             import requests
-            
+        except ImportError:
+            print("错误: 缺少requests库，请运行: pip install requests")
+            return None
+        
+        try:
             # 腾讯财经实时行情API
             url = f"https://qt.gtimg.cn/q={stock_code}"
             headers = {"User-Agent": "Mozilla/5.0"}
             
             response = requests.get(url, headers=headers, timeout=10)
+            response.raise_for_status()  # 检查HTTP错误
             
-            if response.status_code == 200:
-                data = response.text.split("~")
-                if len(data) > 45:
-                    return StockBasicInfo(
-                        stock_code=stock_code,
-                        stock_name=data[1],
-                        industry=data[0].split("=")[0] if "=" in data[0] else "",
-                        market_type="主板" if stock_code.startswith("6") else "创业板",
-                        market_cap=float(data[45]) if data[45] else 0,
-                    )
-        except Exception as e:
-            print(f"获取股票信息失败: {e}")
-        
-        return None
+            data = response.text.split("~")
+            if len(data) > 45:
+                return StockBasicInfo(
+                    stock_code=stock_code,
+                    stock_name=data[1],
+                    industry=data[0].split("=")[0] if "=" in data[0] else "",
+                    market_type="主板" if stock_code.startswith("6") else "创业板",
+                    market_cap=float(data[45]) if data[45] else 0,
+                )
+            else:
+                # API返回数据格式异常
+                print(f"警告: API返回数据格式异常，股票代码: {stock_code}")
+                return None
+                
+        except requests.Timeout:
+            print(f"错误: 请求超时，股票代码: {stock_code}")
+            return None
+        except requests.ConnectionError:
+            print(f"错误: 网络连接失败，股票代码: {stock_code}")
+            return None
+        except requests.RequestException as e:
+            print(f"错误: 请求失败 - {e}，股票代码: {stock_code}")
+            return None
+        except (IndexError, ValueError) as e:
+            print(f"错误: 解析响应数据失败 - {e}，股票代码: {stock_code}")
+            return None
     
     def get_financial_data(self, stock_code: str) -> Optional[FinancialData]:
         """
         获取财务数据
         
         使用腾讯财经API获取PE/PB
+        
+        Args:
+            stock_code: 股票代码，如"600519"
+            
+        Returns:
+            Optional[FinancialData]: 财务数据，失败返回None
+            
+        Raises:
+            TypeError: 当stock_code不是字符串时
+            ValueError: 当stock_code格式无效时
         """
+        # 输入验证
+        if not isinstance(stock_code, str):
+            raise TypeError(f"stock_code必须是字符串，收到{type(stock_code).__name__}")
+        
+        if not stock_code.isdigit() or len(stock_code) != 6:
+            raise ValueError(f"stock_code必须是6位数字，收到'{stock_code}'")
+        
         try:
             import requests
-            
+        except ImportError:
+            print("错误: 缺少requests库，请运行: pip install requests")
+            return None
+        
+        try:
             # 腾讯财经估值API
             url = f"https://qt.gtimg.cn/q={stock_code}"
             headers = {"User-Agent": "Mozilla/5.0"}
             
             response = requests.get(url, headers=headers, timeout=10)
+            response.raise_for_status()
             
-            if response.status_code == 200:
-                data = response.text.split("~")
-                if len(data) > 45:
-                    return FinancialData(
-                        stock_code=stock_code,
-                        pe_ttm=float(data[39]) if data[39] else 0,
-                        pb=float(data[46]) if data[46] else 0,
-                        market_cap=float(data[45]) if data[45] else 0,
-                    )
-        except Exception as e:
-            print(f"获取财务数据失败: {e}")
-        
-        return None
+            data = response.text.split("~")
+            if len(data) > 45:
+                return FinancialData(
+                    stock_code=stock_code,
+                    pe_ttm=float(data[39]) if data[39] else 0,
+                    pb=float(data[46]) if data[46] else 0,
+                    market_cap=float(data[45]) if data[45] else 0,
+                )
+            else:
+                print(f"警告: API返回数据格式异常，股票代码: {stock_code}")
+                return None
+                
+        except requests.Timeout:
+            print(f"错误: 请求超时，股票代码: {stock_code}")
+            return None
+        except requests.ConnectionError:
+            print(f"错误: 网络连接失败，股票代码: {stock_code}")
+            return None
+        except requests.RequestException as e:
+            print(f"错误: 请求失败 - {e}，股票代码: {stock_code}")
+            return None
+        except (IndexError, ValueError) as e:
+            print(f"错误: 解析响应数据失败 - {e}，股票代码: {stock_code}")
+            return None
     
     def get_industry_stocks(self, industry: str) -> List[str]:
         """
         获取行业股票列表
         
         使用东财行业板块API
+        
+        Args:
+            industry: 行业名称，如"银行"、"电子"
+            
+        Returns:
+            List[str]: 行业内股票代码列表
         """
+        if not isinstance(industry, str):
+            raise TypeError(f"industry必须是字符串，收到{type(industry).__name__}")
+        
         # 这里需要调用东财API，但由于需要限流，建议使用a-stock-data的封装
         # 返回示例数据
         industry_map = {
@@ -155,7 +243,16 @@ class AStockDataIntegrator:
         获取公司公告/报告
         
         使用巨潮公告API
+        
+        Args:
+            stock_code: 股票代码
+            filing_type: 公告类型，默认"ESG"
+            
+        Returns:
+            List[Dict]: 公告列表
         """
+        if not isinstance(stock_code, str):
+            raise TypeError(f"stock_code必须是字符串，收到{type(stock_code).__name__}")
         # 示例：获取ESG相关公告
         # 实际使用时需要调用cninfo API
         return [

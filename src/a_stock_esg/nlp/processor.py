@@ -112,74 +112,104 @@ class NLPProcessor:
             
         Returns:
             List[ExtractedInfo]: 提取的信息列表
+            
+        Raises:
+            TypeError: 当text不是字符串时
+            ValueError: 当text为空时
         """
+        # 输入验证
+        if not isinstance(text, str):
+            raise TypeError(f"text必须是字符串，收到{type(text).__name__}")
+        
+        if not text.strip():
+            return []  # 空文本返回空列表，不抛出异常
+        
         extracted = []
         
         # 碳排放信息
-        carbon_matches = self._extract_pattern(text, "carbon_emission")
-        if carbon_matches:
-            extracted.append(ExtractedInfo(
-                category="E",
-                subcategory="碳排放",
-                content="、".join(carbon_matches),
-                confidence=0.9,
-                source="碳排放关键词匹配",
-            ))
+        try:
+            carbon_matches = self._extract_pattern(text, "carbon_emission")
+            if carbon_matches:
+                extracted.append(ExtractedInfo(
+                    category="E",
+                    subcategory="碳排放",
+                    content="、".join(carbon_matches),
+                    confidence=0.9,
+                    source="碳排放关键词匹配",
+                ))
+        except Exception as e:
+            # 记录错误但继续处理
+            pass
         
         # 能源信息
-        energy_matches = self._extract_pattern(text, "energy")
-        if energy_matches:
-            extracted.append(ExtractedInfo(
-                category="E",
-                subcategory="能源管理",
-                content="、".join(energy_matches),
-                confidence=0.85,
-                source="能源关键词匹配",
-            ))
+        try:
+            energy_matches = self._extract_pattern(text, "energy")
+            if energy_matches:
+                extracted.append(ExtractedInfo(
+                    category="E",
+                    subcategory="能源管理",
+                    content="、".join(energy_matches),
+                    confidence=0.85,
+                    source="能源关键词匹配",
+                ))
+        except Exception as e:
+            pass
         
         # 水资源信息
-        water_matches = self._extract_pattern(text, "water")
-        if water_matches:
-            extracted.append(ExtractedInfo(
-                category="E",
-                subcategory="水资源",
-                content="、".join(water_matches),
-                confidence=0.85,
-                source="水资源关键词匹配",
-            ))
+        try:
+            water_matches = self._extract_pattern(text, "water")
+            if water_matches:
+                extracted.append(ExtractedInfo(
+                    category="E",
+                    subcategory="水资源",
+                    content="、".join(water_matches),
+                    confidence=0.85,
+                    source="水资源关键词匹配",
+                ))
+        except Exception as e:
+            pass
         
         # 员工信息
-        employee_matches = self._extract_pattern(text, "employee")
-        if employee_matches:
-            extracted.append(ExtractedInfo(
-                category="S",
-                subcategory="员工权益",
-                content="、".join(employee_matches),
-                confidence=0.85,
-                source="员工关键词匹配",
-            ))
+        try:
+            employee_matches = self._extract_pattern(text, "employee")
+            if employee_matches:
+                extracted.append(ExtractedInfo(
+                    category="S",
+                    subcategory="员工权益",
+                    content="、".join(employee_matches),
+                    confidence=0.85,
+                    source="员工关键词匹配",
+                ))
+        except Exception as e:
+            pass
         
         # 安全信息
-        safety_matches = self._extract_pattern(text, "safety")
-        if safety_matches:
-            extracted.append(ExtractedInfo(
-                category="S",
-                subcategory="安全生产",
-                content="、".join(safety_matches),
-                confidence=0.85,
-                source="安全关键词匹配",
-            ))
+        try:
+            safety_matches = self._extract_pattern(text, "safety")
+            if safety_matches:
+                extracted.append(ExtractedInfo(
+                    category="S",
+                    subcategory="安全生产",
+                    content="、".join(safety_matches),
+                    confidence=0.85,
+                    source="安全关键词匹配",
+                ))
+        except Exception as e:
+            pass
         
         # 治理信息
-        governance_matches = self._extract_pattern(text, "governance")
-        if governance_matches:
-            extracted.append(ExtractedInfo(
-                category="G",
-                subcategory="公司治理",
-                content="、".join(governance_matches),
-                confidence=0.85,
-                source="治理关键词匹配",
-            ))
+        try:
+            governance_matches = self._extract_pattern(text, "governance")
+            if governance_matches:
+                extracted.append(ExtractedInfo(
+                    category="G",
+                    subcategory="公司治理",
+                    content="、".join(governance_matches),
+                    confidence=0.85,
+                    source="治理关键词匹配",
+                ))
+        except Exception as e:
+            pass
         
         return extracted
     

@@ -268,21 +268,62 @@ class ComplianceEngine:
             
         Returns:
             ComplianceReport: 合规检查报告
+            
+        Raises:
+            ValueError: 当输入参数无效时
+            TypeError: 当document_text不是字符串时
         """
+        # 输入验证
+        if not isinstance(document_text, str):
+            raise TypeError(f"document_text必须是字符串，收到{type(document_text).__name__}")
+        
+        if not document_text.strip():
+            raise ValueError("document_text不能为空或仅包含空白字符")
+        
+        valid_market_types = ["主板", "科创板", "创业板", "北交所"]
+        if market_type not in valid_market_types:
+            raise ValueError(f"market_type必须是以下之一: {valid_market_types}，收到'{market_type}'")
+        
         # 筛选适用的规则
         applicable_rules = [
             rule for rule in self.rules 
             if market_type in rule.market_types
         ]
         
+        if not applicable_rules:
+            # 如果没有适用的规则，返回空报告
+            return ComplianceReport(
+                company_name=company_name,
+                market_type=market_type,
+                industry=industry,
+                total_items=0,
+                compliant_items=0,
+                partial_items=0,
+                non_compliant_items=0,
+                missing_items=0,
+                compliance_score=0.0,
+                items=[],
+                recommendations=["未找到适用的合规检查规则，请检查市场类型配置"],
+            )
+        
         # 检查每一项规则
         checked_items = []
+        errors = []
+        
         for rule in applicable_rules:
-            status, evidence = self._check_item(rule, document_text)
-            rule.status = status
-            rule.evidence = evidence
-            rule.recommendation = self._generate_recommendation(rule)
-            checked_items.append(rule)
+            try:
+                status, evidence = self._check_item(rule, document_text)
+                rule.status = status
+                rule.evidence = evidence
+                rule.recommendation = self._generate_recommendation(rule)
+                checked_items.append(rule)
+            except Exception as e:
+                # 记录错误但继续处理其他规则
+                errors.append(f"检查规则{rule.item_id}时出错: {str(e)}")
+                rule.status = ComplianceStatus.MISSING
+                rule.evidence = f"检查出错: {str(e)}"
+                rule.recommendation = "请手动检查此项"
+                checked_items.append(rule)
         
         # 统计结果
         compliant = sum(1 for item in checked_items if item.status == ComplianceStatus.COMPLIANT)
@@ -295,6 +336,10 @@ class ComplianceEngine:
         
         # 生成改进建议
         recommendations = self._generate_recommendations(checked_items)
+        
+        # 如果有错误，添加到建议中
+        if errors:
+            recommendations.append(f"检查过程中遇到{len(errors)}个错误，建议检查输入文本格式")
         
         report = ComplianceReport(
             company_name=company_name,

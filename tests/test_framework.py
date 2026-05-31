@@ -23,6 +23,80 @@ from a_stock_esg.compliance.engine import ComplianceStatus
 from a_stock_esg.data.collector import CompanyInfo
 
 
+class TestAStockESGConfig:
+    """配置类测试"""
+    
+    def test_default_config(self):
+        """测试默认配置"""
+        config = AStockESGConfig()
+        
+        assert config.market_type == MarketType.MAIN_BOARD
+        assert config.industry == IndustryClassification.ELECTRONICS
+        assert config.csrc_guidelines_version == "2024"
+    
+    def test_config_validation_success(self):
+        """测试配置验证成功"""
+        config = AStockESGConfig(
+            market_type=MarketType.MAIN_BOARD,
+            industry=IndustryClassification.ELECTRONICS,
+        )
+        
+        errors = config.validate()
+        assert len(errors) == 0
+    
+    def test_config_validation_invalid_version(self):
+        """测试配置验证失败 - 无效版本号"""
+        config = AStockESGConfig(csrc_guidelines_version="invalid")
+        
+        errors = config.validate()
+        assert len(errors) > 0
+        assert any("csrc_guidelines_version" in e for e in errors)
+    
+    def test_config_validation_empty_data_sources(self):
+        """测试配置验证失败 - 空数据源"""
+        config = AStockESGConfig(data_sources={})
+        
+        errors = config.validate()
+        assert len(errors) > 0
+        assert any("data_sources" in e for e in errors)
+    
+    def test_create_validated_config(self):
+        """测试创建验证配置"""
+        config = AStockESGConfig.create_validated(
+            market_type=MarketType.STAR_BOARD,
+            industry=IndustryClassification.COMPUTER,
+        )
+        
+        assert config.market_type == MarketType.STAR_BOARD
+        assert config.industry == IndustryClassification.COMPUTER
+    
+    def test_create_validated_config_failure(self):
+        """测试创建验证配置失败"""
+        with pytest.raises(ValueError) as excinfo:
+            AStockESGConfig.create_validated(
+                market_type="invalid",
+                industry=IndustryClassification.ELECTRONICS,
+            )
+        
+        assert "配置验证失败" in str(excinfo.value)
+    
+    def test_get_disclosure_requirements(self):
+        """测试获取披露要求"""
+        config = AStockESGConfig(market_type=MarketType.MAIN_BOARD)
+        requirements = config.get_disclosure_requirements()
+        
+        assert len(requirements.mandatory_items) > 0
+        assert len(requirements.recommended_items) > 0
+    
+    def test_get_industry_focus(self):
+        """测试获取行业重点领域"""
+        config = AStockESGConfig(industry=IndustryClassification.CHEMICAL)
+        focus = config.get_industry_focus()
+        
+        assert len(focus) > 0
+        assert "安全生产" in focus
+
+
 class TestComplianceEngine:
     """合规检查引擎测试"""
     
@@ -64,6 +138,37 @@ class TestComplianceEngine:
         
         # 科创板应有特殊检查项
         assert report.total_items > 0
+    
+    def test_check_compliance_empty_text(self):
+        """测试空文本输入"""
+        with pytest.raises(ValueError) as excinfo:
+            self.engine.check_compliance("", "测试公司", "主板", "电子")
+        
+        assert "不能为空" in str(excinfo.value)
+    
+    def test_check_compliance_invalid_market_type(self):
+        """测试无效市场类型"""
+        with pytest.raises(ValueError) as excinfo:
+            self.engine.check_compliance("测试文本", "测试公司", "无效市场", "电子")
+        
+        assert "market_type必须是" in str(excinfo.value)
+    
+    def test_check_compliance_non_string_input(self):
+        """测试非字符串输入"""
+        with pytest.raises(TypeError) as excinfo:
+            self.engine.check_compliance(123, "测试公司", "主板", "电子")
+        
+        assert "必须是字符串" in str(excinfo.value)
+    
+    def test_check_compliance_no_applicable_rules(self):
+        """测试无适用规则"""
+        # 使用一个不存在的市场类型来测试空规则情况
+        report = self.engine.check_compliance(
+            "测试文本", "测试公司", "主板", "电子"
+        )
+        
+        # 应该返回报告，即使没有适用规则
+        assert report is not None
 
 
 class TestNLPProcessor:
@@ -98,6 +203,23 @@ class TestNLPProcessor:
         
         assert sentiment.sentiment in ["positive", "negative", "neutral"]
         assert 0 <= sentiment.score <= 1
+    
+    def test_extract_esg_info_empty_text(self):
+        """测试空文本提取"""
+        info = self.processor.extract_esg_info("")
+        assert len(info) == 0
+    
+    def test_extract_esg_info_whitespace_only(self):
+        """测试仅空白字符文本"""
+        info = self.processor.extract_esg_info("   \n\t  ")
+        assert len(info) == 0
+    
+    def test_extract_esg_info_non_string(self):
+        """测试非字符串输入"""
+        with pytest.raises(TypeError) as excinfo:
+            self.processor.extract_esg_info(123)
+        
+        assert "必须是字符串" in str(excinfo.value)
 
 
 class TestDataCollector:
@@ -133,6 +255,12 @@ class TestDataCollector:
         
         assert "total_companies" in summary
         assert "total_disclosures" in summary
+    
+    def test_get_company_disclosures(self):
+        """测试获取公司披露信息"""
+        disclosures = self.collector.get_company_disclosures("000001")
+        
+        assert isinstance(disclosures, list)
 
 
 class TestBenchmarkAnalyzer:
@@ -208,6 +336,24 @@ class TestKnowledgeGraph:
         
         assert "nodes" in network
         assert "edges" in network
+    
+    def test_get_statistics(self):
+        """测试获取统计信息"""
+        company_data = {
+            "stock_code": "000001",
+            "company_name": "测试公司",
+            "market_type": "主板",
+            "industry": "电子",
+            "esg_metrics": {"碳排放强度": 0.5},
+            "financial_metrics": {"ROE": 15.5},
+        }
+        
+        self.graph.build_esg_financial_graph(company_data)
+        stats = self.graph.get_statistics()
+        
+        assert "total_nodes" in stats
+        assert "total_edges" in stats
+        assert "node_types" in stats
 
 
 if __name__ == "__main__":

@@ -177,8 +177,88 @@ class AStockESGConfig:
             IndustryClassification.CHEMICAL: ["安全生产", "污染排放", "职业健康"],
             IndustryClassification.STEEL: ["碳排放", "能源消耗", "废弃物处理"],
             IndustryClassification.ELECTRONICS: ["有害物质管理", "电子废弃物回收"],
-            IndustryClassification.PHARMACEUTICAL: ["药品安全", "研发伦理", "医疗可及性"],
-            IndustryClassification.FOOD_BEVERAGE: ["食品安全", "营养健康", "包装环保"],
-            IndustryClassification.AUTOMOBILE: ["新能源汽车", "电池回收", "智能安全"],
         }
         return industry_focus.get(self.industry, [])
+    
+    def validate(self) -> List[str]:
+        """
+        验证配置有效性
+        
+        Returns:
+            List[str]: 错误列表，空列表表示配置有效
+        """
+        errors = []
+        
+        # 验证市场类型
+        if not isinstance(self.market_type, MarketType):
+            errors.append(f"market_type必须是MarketType枚举类型，收到{type(self.market_type).__name__}")
+        
+        # 验证行业分类
+        if not isinstance(self.industry, IndustryClassification):
+            errors.append(f"industry必须是IndustryClassification枚举类型，收到{type(self.industry).__name__}")
+        
+        # 验证监管规则版本格式
+        import re
+        version_pattern = r"^\d{4}$"
+        if not re.match(version_pattern, self.csrc_guidelines_version):
+            errors.append(f"csrc_guidelines_version格式无效，应为4位数字年份，收到'{self.csrc_guidelines_version}'")
+        if not re.match(version_pattern, self.exchange_rules_version):
+            errors.append(f"exchange_rules_version格式无效，应为4位数字年份，收到'{self.exchange_rules_version}'")
+        
+        # 验证数据源配置
+        if not isinstance(self.data_sources, dict):
+            errors.append(f"data_sources必须是字典类型，收到{type(self.data_sources).__name__}")
+        elif len(self.data_sources) == 0:
+            errors.append("data_sources不能为空")
+        
+        # 验证评级机构配置
+        if not isinstance(self.rating_agencies, list):
+            errors.append(f"rating_agencies必须是列表类型，收到{type(self.rating_agencies).__name__}")
+        elif len(self.rating_agencies) == 0:
+            errors.append("rating_agencies不能为空列表")
+        
+        # 验证双碳配置
+        if not isinstance(self.dual_carbon_config, dict):
+            errors.append(f"dual_carbon_config必须是字典类型，收到{type(self.dual_carbon_config).__name__}")
+        else:
+            if "peak_carbon_year" in self.dual_carbon_config:
+                peak_year = self.dual_carbon_config["peak_carbon_year"]
+                if not isinstance(peak_year, int) or peak_year < 2020 or peak_year > 2050:
+                    errors.append(f"peak_carbon_year应在2020-2050之间，收到{peak_year}")
+            
+            if "carbon_neutral_year" in self.dual_carbon_config:
+                neutral_year = self.dual_carbon_config["carbon_neutral_year"]
+                if not isinstance(neutral_year, int) or neutral_year < 2040 or neutral_year > 2100:
+                    errors.append(f"carbon_neutral_year应在2040-2100之间，收到{neutral_year}")
+        
+        return errors
+    
+    @classmethod
+    def create_validated(
+        cls,
+        market_type: MarketType = MarketType.MAIN_BOARD,
+        industry: IndustryClassification = IndustryClassification.ELECTRONICS,
+        **kwargs
+    ) -> "AStockESGConfig":
+        """
+        创建并验证配置
+        
+        Args:
+            market_type: 市场类型
+            industry: 行业分类
+            **kwargs: 其他配置参数
+            
+        Returns:
+            AStockESGConfig: 验证通过的配置对象
+            
+        Raises:
+            ValueError: 当配置验证失败时
+        """
+        config = cls(market_type=market_type, industry=industry, **kwargs)
+        errors = config.validate()
+        
+        if errors:
+            error_msg = "配置验证失败:\n" + "\n".join(f"  - {e}" for e in errors)
+            raise ValueError(error_msg)
+        
+        return config
