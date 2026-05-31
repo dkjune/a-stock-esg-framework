@@ -65,43 +65,26 @@
 a_stock_esg_framework/
 ├── src/a_stock_esg/           # 核心源代码
 │   ├── core/                  # 核心配置
-│   │   ├── config.py          # 配置管理
-│   │   └── ...
-│   ├── compliance/            # 合规性检查
+│   │   └── config.py          # 配置管理
+│   ├── compliance/            # 合规检查（含政策分析、风险分析）
 │   │   ├── engine.py          # 合规检查引擎
-│   │   └── ...
+│   │   ├── policy.py          # 中特估政策匹配度分析
+│   │   ├── roe.py             # ROE核心指标分析、一利五率
+│   │   └── disclosure.py      # 披露质量分析、话术识别
 │   ├── data/                  # 数据源层
 │   │   ├── collector.py       # 数据收集器
 │   │   ├── parser.py          # 文档解析器
-│   │   ├── astock_integration.py  # A股数据集成
-│   │   └── ...
+│   │   └── astock_integration.py  # A股数据集成
 │   ├── nlp/                   # 中文NLP处理
-│   │   ├── processor.py       # NLP处理器
-│   │   └── ...
-│   ├── policy/                # 中特估政策分析（v2.0新增）
-│   │   ├── china_valuation.py # 中特估政策匹配度分析
-│   │   ├── roe_analyzer.py    # ROE核心指标分析
-│   │   └── ...
-│   ├── risk/                  # 风险分析（v2.0新增）
-│   │   ├── disclosure_quality.py  # 披露质量分析
-│   │   └── ...
-│   ├── investment/            # 投资分析（v2.0新增）
-│   │   ├── personal_scorer.py # 个人投资者评分
-│   │   └── ...
-│   ├── visualization/         # 可视化
+│   │   └── processor.py       # NLP处理器
+│   ├── visualization/         # 可视化与投资分析
 │   │   ├── benchmark.py       # 行业对标
 │   │   ├── visualizer.py      # 看板生成
-│   │   └── ...
-│   ├── knowledge_graph/       # 知识图谱
-│   │   ├── graph.py           # 图谱构建
-│   │   └── ...
-│   └── main.py                # 主程序入口
+│   │   └── scorer.py          # 个人投资者评分、选股因子
+│   └── knowledge_graph/       # 知识图谱
+│       └── graph.py           # 图谱构建
 ├── examples/                  # 示例脚本
-│   ├── basic_usage.py         # 基础使用示例
-│   ├── electricity_analysis.py    # 电力行业分析
-│   └── china_valuation_analysis.py # 中特估分析（v2.0新增）
 ├── tests/                     # 测试文件
-├── docs/                      # 文档
 ├── config/                    # 配置文件
 ├── setup.py                   # 安装配置
 └── requirements.txt           # 依赖列表

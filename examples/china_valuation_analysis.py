@@ -16,8 +16,8 @@ from a_stock_esg import (
     DisclosureQualityAnalyzer,
     PersonalInvestorScorer,
     StockFactorGenerator,
+    InformationSource,
 )
-from a_stock_esg.risk.disclosure_quality import InformationSource, RiskLevel
 
 
 def analyze_china_valuation():

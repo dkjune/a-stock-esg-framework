@@ -7,47 +7,83 @@ A股适配版富士通AI分析逻辑框架
 __version__ = "2.0.0"
 __author__ = "A-Stock ESG Team"
 
+# 核心配置
 from .core.config import AStockESGConfig
-from .compliance.engine import ComplianceEngine
+
+# 合规检查（包含政策分析、风险分析）
+from .compliance import (
+    ComplianceEngine,
+    ComplianceReport,
+    ComplianceItem,
+    ComplianceStatus,
+    ChinaValuationPolicyAnalyzer,
+    PolicyMatchResult,
+    ROEAnalyzer,
+    OneFiveRatioAnalyzer,
+    DisclosureQualityAnalyzer,
+    DisclosureQualityResult,
+    InformationSource,
+)
+
+# 数据源
 from .data.collector import DataCollector
 from .data.parser import DocumentParser
 from .data.astock_integration import AStockDataIntegrator, ESGDataPipeline
+
+# NLP处理
 from .nlp.processor import NLPProcessor
-from .visualization.benchmark import BenchmarkAnalyzer
-from .visualization.visualizer import Visualizer
+
+# 可视化与投资分析
+from .visualization import (
+    BenchmarkAnalyzer,
+    BenchmarkComparison,
+    DifferentiationSuggestion,
+    Visualizer,
+    DashboardConfig,
+    PersonalInvestorScorer,
+    StockFactorGenerator,
+    StockScore,
+    ScoringResult,
+)
+
+# 知识图谱
 from .knowledge_graph.graph import KnowledgeGraph
 
-# 中特估政策分析模块
-from .policy.china_valuation import ChinaValuationPolicyAnalyzer, PolicyMatchResult
-from .policy.roe_analyzer import ROEAnalyzer, OneFiveRatioAnalyzer
-
-# 风险分析模块
-from .risk.disclosure_quality import DisclosureQualityAnalyzer, DisclosureQualityResult
-
-# 投资分析模块
-from .investment.personal_scorer import PersonalInvestorScorer, StockFactorGenerator
-
 __all__ = [
-    # 核心模块
+    # 核心配置
     "AStockESGConfig",
+    # 合规检查
     "ComplianceEngine",
-    "DataCollector",
-    "DocumentParser",
-    "AStockDataIntegrator",
-    "ESGDataPipeline",
-    "NLPProcessor",
-    "BenchmarkAnalyzer",
-    "Visualizer",
-    "KnowledgeGraph",
-    # 中特估分析模块
+    "ComplianceReport",
+    "ComplianceItem",
+    "ComplianceStatus",
+    # 政策分析
     "ChinaValuationPolicyAnalyzer",
     "PolicyMatchResult",
     "ROEAnalyzer",
     "OneFiveRatioAnalyzer",
-    # 风险分析模块
+    # 风险分析
     "DisclosureQualityAnalyzer",
     "DisclosureQualityResult",
-    # 投资分析模块
+    "InformationSource",
+    # 数据源
+    "DataCollector",
+    "DocumentParser",
+    "AStockDataIntegrator",
+    "ESGDataPipeline",
+    # NLP处理
+    "NLPProcessor",
+    # 可视化
+    "BenchmarkAnalyzer",
+    "BenchmarkComparison",
+    "DifferentiationSuggestion",
+    "Visualizer",
+    "DashboardConfig",
+    # 投资分析
     "PersonalInvestorScorer",
     "StockFactorGenerator",
+    "StockScore",
+    "ScoringResult",
+    # 知识图谱
+    "KnowledgeGraph",
 ]
