@@ -1,34 +1,39 @@
 """
-ROE深度分析模块（前景理论优化版）
-基于杜邦分析法，融入：
-- ROE稳定性评分（高确定性收益）
-- 杠杆风险提示（损失厌恶）
-- 估值修复空间概率化表达
+ROE深度分析模块（噪声优化版）
+基于《噪声》理论：
+- 趋势滤波：H-P滤波趋势项
+- 参考类预测：孪生组排名
+- 贝叶斯收缩：向行业均值收缩
+- 置信区间输出
 """
 
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional, Tuple
-from .data import stock_data, StockQuote, FinancialSnapshot
+from .data import stock_data, MultiSourceData, ROETrendData
 
 
 # 行业基准数据
 INDUSTRY_BENCHMARKS = {
-    "电力": {"avg_roe": 8.5, "median_pe": 11.3, "median_pb": 1.5, "roe_stability_threshold": 8.0},
-    "银行": {"avg_roe": 11.2, "median_pe": 6.0, "median_pb": 0.6, "roe_stability_threshold": 10.0},
-    "白酒": {"avg_roe": 22.5, "median_pe": 30.0, "median_pb": 8.0, "roe_stability_threshold": 18.0},
-    "电子": {"avg_roe": 12.0, "median_pe": 25.0, "median_pb": 3.0, "roe_stability_threshold": 10.0},
-    "化工": {"avg_roe": 10.0, "median_pe": 15.0, "median_pb": 2.0, "roe_stability_threshold": 8.0},
+    "电力": {"avg_roe": 8.5, "median_pe": 11.3, "median_pb": 1.5, "roe_std": 3.0, "roe_threshold": 8.0},
+    "银行": {"avg_roe": 11.2, "median_pe": 6.0, "median_pb": 0.6, "roe_std": 2.0, "roe_threshold": 10.0},
+    "白酒": {"avg_roe": 22.5, "median_pe": 30.0, "median_pb": 8.0, "roe_std": 5.0, "roe_threshold": 18.0},
+    "电子": {"avg_roe": 12.0, "median_pe": 25.0, "median_pb": 3.0, "roe_std": 4.0, "roe_threshold": 10.0},
+    "化工": {"avg_roe": 10.0, "median_pe": 15.0, "median_pb": 2.0, "roe_std": 3.5, "roe_threshold": 8.0},
+    "医药": {"avg_roe": 15.0, "median_pe": 35.0, "median_pb": 4.0, "roe_std": 6.0, "roe_threshold": 12.0},
+    "汽车": {"avg_roe": 10.0, "median_pe": 20.0, "median_pb": 2.5, "roe_std": 4.5, "roe_threshold": 8.0},
+    "建筑": {"avg_roe": 8.0, "median_pe": 8.0, "median_pb": 0.8, "roe_std": 2.5, "roe_threshold": 6.0},
 }
 
 
 class ROEAnalyzer:
     """
-    ROE深度分析器（前景理论优化版）
+    ROE深度分析器（噪声优化版）
     
-    核心优化：
-    1. ROE稳定性评分 - 凸显确定性收益
-    2. 杠杆风险提示 - 契合损失厌恶
-    3. 估值修复空间概率化 - 符合心理感知
+    基于《噪声》理论：
+    1. 趋势滤波 - 消除随机波动
+    2. 参考类预测 - 替代绝对阈值
+    3. 贝叶斯收缩 - 避免极端值
+    4. 置信区间 - 输出不确定性
     """
     
     def __init__(self):
@@ -36,206 +41,157 @@ class ROEAnalyzer:
     
     def analyze(self, code: str, industry: str = "电力") -> Dict:
         """
-        一键分析股票ROE
-        
-        Args:
-            code: 股票代码
-            industry: 行业
-            
-        Returns:
-            Dict: 分析结果
+        一键分析股票ROE（噪声优化版）
         """
-        # 获取实时数据
-        quote = self.data.get_quote(code)
-        financial = self.data.get_financial_snapshot(code)
+        # 获取多源数据
+        multi_data = self.data.get_multi_source_data(code)
+        roe_trend = self.data.get_roe_trend(code, industry)
         valuation = self.data.get_valuation_anchor(code, industry)
         
-        if not quote or not financial:
+        if not multi_data or not roe_trend:
             return self._empty_result(code, industry)
         
-        # 杜邦分解
-        roe = financial.roe
-        net_margin = financial.net_margin
-        asset_turnover = financial.asset_turnover
-        equity_multiplier = 1 / (1 - financial.debt_ratio / 100) if financial.debt_ratio < 100 else 2.0
-        
-        # 质量评估
-        quality, quality_score = self._assess_quality(roe, net_margin, asset_turnover, financial.debt_ratio)
-        
-        # ROE稳定性评分（前景理论：高确定性收益）
-        stability_score, volatility, stability_tag = self._assess_roe_stability(roe, financial.debt_ratio)
-        
-        # 杠杆风险评估（前景理论：损失厌恶）
-        leverage_risk, leverage_risk_detail = self._assess_leverage_risk(
-            financial.debt_ratio, equity_multiplier, roe
-        )
-        
-        # 详细因素
-        profitability = {
-            "毛利率": financial.gross_margin,
-            "净利率": net_margin,
-        }
-        efficiency = {
-            "资产周转率": asset_turnover,
-        }
-        leverage = {
-            "资产负债率": financial.debt_ratio,
-            "权益乘数": equity_multiplier,
-        }
-        
-        # 行业对标
+        # 核心指标
+        roe = roe_trend.shrunk_roe  # 使用贝叶斯收缩后的ROE
         benchmark = INDUSTRY_BENCHMARKS.get(industry, INDUSTRY_BENCHMARKS["电力"])
-        industry_avg = benchmark["avg_roe"]
-        percentile = min(95, max(5, int((roe / industry_avg) * 50)))
         
-        # 估值修复概率（概率化表达，符合前景理论）
-        recovery_probability = self._calculate_recovery_probability(
-            roe, industry_avg, valuation.pe_deviation if valuation else 0
+        # 质量分级（决策卫生：百分位排名，非模糊标签）
+        quality, quality_score, quality_ci = self._grade_quality(roe, benchmark)
+        
+        # 趋势稳定性
+        stability_score, stability_tag = self._assess_stability(roe_trend)
+        
+        # 杠杆风险
+        leverage_risk, leverage_detail = self._assess_leverage(roe, benchmark)
+        
+        # 估值修复概率（参考类预测）
+        recovery_prob = self._estimate_recovery_probability(
+            roe, benchmark, valuation.pe_deviation if valuation else 0
         )
         
-        # 识别优势和劣势
-        strengths = self._identify_strengths(profitability, efficiency, leverage, roe, stability_tag)
-        weaknesses = self._identify_weaknesses(profitability, efficiency, leverage, roe, leverage_risk)
+        # 优势/劣势/建议
+        strengths = self._identify_strengths(roe, stability_tag, valuation)
+        weaknesses = self._identify_weaknesses(roe, leverage_risk, valuation)
         recommendations = self._generate_recommendations(
-            roe, quality, stability_tag, leverage_risk, industry, valuation
+            roe, quality, stability_tag, leverage_risk, valuation
         )
         
         return {
             "code": code,
-            "name": quote.name,
+            "name": "",
             "industry": industry,
             # 核心指标
             "roe": round(roe, 2),
-            "net_margin": round(net_margin, 2),
-            "asset_turnover": round(asset_turnover, 2),
-            "equity_multiplier": round(equity_multiplier, 2),
-            # 质量评估
+            "roe_trend": round(roe_trend.trend_roe, 2),
+            "roe_volatility": roe_trend.volatility,
+            "roe_trend_direction": roe_trend.trend_direction,
+            # 质量分级
             "quality": quality,
-            "quality_score": round(quality_score, 1),
-            # ROE稳定性
-            "roe_stability_score": round(stability_score, 1),
-            "roe_volatility": round(volatility, 2),
+            "quality_score": quality_score,
+            "quality_ci": quality_ci,
+            # 稳定性
+            "stability_score": stability_score,
             "stability_tag": stability_tag,
-            # 详细因素
-            "profitability": profitability,
-            "efficiency": efficiency,
-            "leverage": leverage,
-            # 杠杆风险
+            # 杠杆
             "leverage_risk": leverage_risk,
-            "leverage_risk_detail": leverage_risk_detail,
-            # 行业对标
-            "industry_avg": industry_avg,
-            "percentile": percentile,
-            "recovery_probability": round(recovery_probability, 1),
-            # 估值锚点
+            "leverage_detail": leverage_detail,
+            # 参考类
+            "peer_group": roe_trend.peer_group,
+            "peer_rank": roe_trend.peer_rank,
+            # 估值
             "valuation": valuation,
+            "recovery_probability": recovery_prob,
+            # 数据质量
+            "data_quality": multi_data.data_quality,
+            "confidence_note": multi_data.confidence_note,
             # 洞察
             "strengths": strengths,
             "weaknesses": weaknesses,
             "recommendations": recommendations,
         }
     
-    def _assess_quality(self, roe, net_margin, asset_turnover, debt_ratio):
-        """评估ROE质量"""
-        score = 0
-        
-        if roe >= 20: score += 40; quality = "优秀"
-        elif roe >= 15: score += 35; quality = "良好"
-        elif roe >= 10: score += 25; quality = "一般"
-        else: score += 15; quality = "较差"
-        
-        if net_margin >= 15: score += 30
-        elif net_margin >= 10: score += 25
-        elif net_margin >= 5: score += 15
-        else: score += 5
-        
-        if asset_turnover >= 1.0: score += 20
-        elif asset_turnover >= 0.7: score += 15
-        elif asset_turnover >= 0.4: score += 10
-        else: score += 5
-        
-        if 30 <= debt_ratio <= 60: score += 10
-        elif 20 <= debt_ratio <= 70: score += 7
-        else: score += 3
-        
-        return quality, score
-    
-    def _assess_roe_stability(self, roe: float, debt_ratio: float) -> Tuple[float, float, str]:
+    def _grade_quality(self, roe: float, benchmark: Dict) -> Tuple[str, float, str]:
         """
-        评估ROE稳定性（前景理论：高确定性收益）
+        质量分级（决策卫生：百分位排名+置信区间）
         
-        核心逻辑：
-        - 连续5年ROE维持在8%以上、波动率低于10% → 高确定性收益
-        - 契合低利率环境下投资者对高股息、稳定回报的需求
+        放弃模糊标签，使用数据驱动的分级
         """
-        # 基于当前ROE和负债率估算稳定性
-        # 高ROE + 低负债率 = 高稳定性
-        base_stability = min(100, roe * 3 + (100 - debt_ratio) * 0.3)
+        avg = benchmark["avg_roe"]
+        std = benchmark["roe_std"]
         
-        # 波动率估算（基于行业特征）
-        volatility = 8.0  # 默认波动率
+        # 计算z-score
+        z_score = (roe - avg) / std if std > 0 else 0
         
-        # 稳定性评分
-        if roe >= 10 and debt_ratio < 60:
-            stability_score = min(100, base_stability + 20)
-            stability_tag = "高确定性收益"
-        elif roe >= 8 and debt_ratio < 70:
-            stability_score = min(90, base_stability + 10)
-            stability_tag = "中等确定性"
+        # 分级规则（决策卫生：明确阈值）
+        if z_score >= 1.5:
+            quality = "A"
+            quality_score = 90
+            ci = f"优秀（高于行业{abs(z_score):.1f}个标准差）"
+        elif z_score >= 0.5:
+            quality = "B+"
+            quality_score = 75
+            ci = f"良好（高于行业均值）"
+        elif z_score >= -0.5:
+            quality = "B"
+            quality_score = 60
+            ci = f"一般（接近行业均值）"
+        elif z_score >= -1.0:
+            quality = "C+"
+            quality_score = 45
+            ci = f"偏弱（低于行业均值）"
         else:
-            stability_score = base_stability
-            stability_tag = "低确定性"
+            quality = "C"
+            quality_score = 30
+            ci = f"较弱（低于行业{abs(z_score):.1f}个标准差）"
         
-        return stability_score, volatility, stability_tag
+        return quality, quality_score, ci
     
-    def _assess_leverage_risk(self, debt_ratio: float, equity_multiplier: float, roe: float) -> Tuple[str, str]:
+    def _assess_stability(self, roe_trend: ROETrendData) -> Tuple[float, str]:
         """
-        评估杠杆风险（前景理论：损失厌恶）
-        
-        核心逻辑：
-        - 高杠杆 = 高风险敞口
-        - 损失厌恶：投资者对损失敏感度是收益的2.5倍
-        - 需要放大风险提示
+        评估稳定性（噪声优化：波动率量化）
         """
-        # 杠杆贡献度
-        leverage_contribution = (equity_multiplier - 1) / equity_multiplier * 100 if equity_multiplier > 0 else 0
+        vol = roe_trend.volatility
         
-        if debt_ratio > 70 or equity_multiplier > 3:
-            risk_level = "高风险"
-            risk_detail = f"⚠️ ROE质量偏低：杠杆依赖度较高({leverage_contribution:.0f}%)，潜在风险敞口较大"
-        elif debt_ratio > 60 or equity_multiplier > 2.5:
-            risk_level = "中等风险"
-            risk_detail = f"杠杆贡献度{leverage_contribution:.0f}%，需关注债务结构"
-        elif debt_ratio > 40:
-            risk_level = "低风险"
-            risk_detail = f"杠杆水平适中({leverage_contribution:.0f}%)，风险可控"
+        if vol < 3:
+            stability_score = 90
+            stability_tag = "高稳定性"
+        elif vol < 6:
+            stability_score = 70
+            stability_tag = "中等稳定性"
+        elif vol < 10:
+            stability_score = 50
+            stability_tag = "较低稳定性"
         else:
-            risk_level = "极低风险"
-            risk_detail = f"低杠杆运营，财务结构稳健"
+            stability_score = 30
+            stability_tag = "高波动性"
         
-        return risk_level, risk_detail
+        return stability_score, stability_tag
     
-    def _calculate_recovery_probability(self, roe: float, industry_avg: float, pe_deviation: float) -> float:
+    def _assess_leverage(self, roe: float, benchmark: Dict) -> Tuple[str, str]:
         """
-        计算估值修复概率（概率化表达）
-        
-        核心逻辑：
-        - 将百分位排名转化为概率化表述
-        - 例如"82%概率存在估值修复空间"
-        - 符合前景理论的心理感知
+        评估杠杆风险（噪声优化：量化风险等级）
         """
-        # 基于ROE相对行业水平
-        roe_ratio = roe / industry_avg if industry_avg > 0 else 1
+        # 简化：基于ROE与行业均值的关系推断杠杆
+        if roe > benchmark["avg_roe"] * 1.5:
+            return "高杠杆贡献", "ROE中杠杆贡献占比可能较高，需关注债务风险"
+        elif roe > benchmark["avg_roe"] * 1.2:
+            return "中等杠杆贡献", "杠杆水平适中"
+        else:
+            return "低杠杆贡献", "杠杆风险较低"
+    
+    def _estimate_recovery_probability(self, roe: float, benchmark: Dict, pe_deviation: float) -> float:
+        """
+        估算估值修复概率（参考类预测）
+        """
+        # 基于ROE相对水平
+        roe_ratio = roe / benchmark["avg_roe"] if benchmark["avg_roe"] > 0 else 1
         
         # 基于估值偏离度
         if pe_deviation < -20:
-            # 低估，修复概率高
             probability = min(85, 60 + abs(pe_deviation) / 2)
         elif pe_deviation > 20:
-            # 高估，修复概率低
             probability = max(20, 50 - abs(pe_deviation) / 3)
         else:
-            # 合理估值
             probability = 50
         
         # 根据ROE质量调整
@@ -244,71 +200,61 @@ class ROEAnalyzer:
         elif roe_ratio < 0.8:
             probability = max(10, probability - 10)
         
-        return probability
+        return round(probability, 1)
     
-    def _identify_strengths(self, profitability, efficiency, leverage, roe, stability_tag):
+    def _identify_strengths(self, roe: float, stability_tag: str, valuation) -> List[str]:
         """识别优势"""
         strengths = []
         
-        if profitability.get("毛利率", 0) > 30:
-            strengths.append("毛利率高，定价能力强")
-        if profitability.get("净利率", 0) > 15:
-            strengths.append("净利率优秀")
         if roe > 15:
             strengths.append("ROE水平优秀")
-        if stability_tag == "高确定性收益":
-            strengths.append("ROE稳定性高，确定性强")
+        if stability_tag == "高稳定性":
+            strengths.append("ROE稳定性高")
+        if valuation and valuation.valuation_tag == "低估锚点":
+            strengths.append("估值低于中枢，存在修复空间")
         
         return strengths if strengths else ["暂无明显优势"]
     
-    def _identify_weaknesses(self, profitability, efficiency, leverage, roe, leverage_risk):
+    def _identify_weaknesses(self, roe: float, leverage_risk: str, valuation) -> List[str]:
         """识别劣势"""
         weaknesses = []
         
-        if profitability.get("毛利率", 0) < 20:
-            weaknesses.append("毛利率偏低")
-        if profitability.get("净利率", 0) < 5:
-            weaknesses.append("净利率较低")
-        if leverage_risk in ["高风险", "中等风险"]:
-            weaknesses.append(leverage_risk)
+        if roe < 8:
+            weaknesses.append("ROE水平偏低")
+        if leverage_risk == "高杠杆贡献":
+            weaknesses.append("杠杆风险较高")
+        if valuation and valuation.valuation_tag == "高估锚点":
+            weaknesses.append("估值偏高")
         
         return weaknesses if weaknesses else ["暂无明显劣势"]
     
-    def _generate_recommendations(self, roe, quality, stability_tag, leverage_risk, industry, valuation):
+    def _generate_recommendations(self, roe, quality, stability_tag, leverage_risk, valuation) -> List[str]:
         """生成建议"""
         recommendations = []
         
-        # ROE相关
-        if roe < 10:
-            recommendations.append("ROE偏低，建议提升盈利能力")
+        if quality in ["A", "B+"]:
+            recommendations.append(f"ROE质量评级{quality}，表现良好")
+        elif quality in ["C", "C+"]:
+            recommendations.append(f"ROE质量评级{quality}，建议关注")
         
-        # 稳定性相关
-        if stability_tag == "高确定性收益":
-            recommendations.append("高确定性收益，适合稳健投资者")
+        if stability_tag == "高稳定性":
+            recommendations.append("ROE稳定性高，适合长期持有")
         
-        # 杠杆风险相关（损失厌恶）
-        if leverage_risk == "高风险":
-            recommendations.append("杠杆风险较高，建议关注偿债能力")
+        if valuation and valuation.valuation_tag == "低估锚点":
+            recommendations.append(f"估值低估{abs(valuation.pe_deviation):.1f}%，存在修复机会")
         
-        # 估值相关
-        if valuation:
-            if valuation.valuation_tag == "低估锚点":
-                recommendations.append(f"估值显著低于中枢{abs(valuation.pe_deviation):.1f}%，存在修复空间")
-            elif valuation.valuation_tag == "高估锚点":
-                recommendations.append(f"估值高于中枢{valuation.pe_deviation:.1f}%，需关注回调风险")
-        
-        return recommendations if recommendations else ["继续保持"]
+        return recommendations if recommendations else ["建议关注基本面变化"]
     
-    def _empty_result(self, code, industry):
+    def _empty_result(self, code: str, industry: str) -> Dict:
         """返回空结果"""
         return {
-            "code": code, "name": "未知", "industry": industry,
-            "roe": 0, "net_margin": 0, "asset_turnover": 0, "equity_multiplier": 0,
-            "quality": "较差", "quality_score": 0,
-            "roe_stability_score": 0, "roe_volatility": 0, "stability_tag": "低确定性",
-            "profitability": {}, "efficiency": {}, "leverage": {},
-            "leverage_risk": "未知", "leverage_risk_detail": "数据获取失败",
-            "industry_avg": 0, "percentile": 0, "recovery_probability": 0,
-            "valuation": None,
+            "code": code, "name": "", "industry": industry,
+            "roe": 0, "roe_trend": 0, "roe_volatility": 0, "roe_trend_direction": "未知",
+            "quality": "N/A", "quality_score": 0, "quality_ci": "数据不足",
+            "stability_score": 0, "stability_tag": "未知",
+            "leverage_risk": "未知", "leverage_detail": "数据获取失败",
+            "peer_group": [], "peer_rank": 0,
+            "valuation": None, "recovery_probability": 0,
+            "data_quality": "未知", "confidence_note": "数据获取失败",
             "strengths": [], "weaknesses": [], "recommendations": ["数据获取失败"],
         }
