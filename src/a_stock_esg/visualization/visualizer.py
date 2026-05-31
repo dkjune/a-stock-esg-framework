@@ -344,10 +344,24 @@ class Visualizer:
 """
         return html
     
-    def _generate_recommendations_html(self, report) -> str:
+    def _generate_recommendations_html(self, recommendations) -> str:
         """生成建议HTML"""
         html = ""
-        for rec in report.recommendations:
+        
+        # 处理不同类型的输入
+        if recommendations is None:
+            return html
+        
+        # 如果是列表，直接遍历
+        if isinstance(recommendations, list):
+            items = recommendations
+        # 如果是对象，获取recommendations属性
+        elif hasattr(recommendations, 'recommendations'):
+            items = recommendations.recommendations
+        else:
+            return html
+        
+        for rec in items:
             html += f"""
             <div class="recommendation-item">{rec}</div>
 """
