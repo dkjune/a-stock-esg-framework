@@ -86,23 +86,17 @@ class AStockDataIntegrator:
         """
         获取股票基础信息
         
-        使用腾讯财经API（不封IP）
+        使用东方财富API
         
         Args:
             stock_code: 股票代码，如"600519"
             
         Returns:
             Optional[StockBasicInfo]: 股票信息，失败返回None
-            
-        Raises:
-            TypeError: 当stock_code不是字符串时
-            ValueError: 当stock_code格式无效时
         """
-        # 输入验证
         if not isinstance(stock_code, str):
             raise TypeError(f"stock_code必须是字符串，收到{type(stock_code).__name__}")
         
-        # 股票代码格式验证（6位数字）
         if not stock_code.isdigit() or len(stock_code) != 6:
             raise ValueError(f"stock_code必须是6位数字，收到'{stock_code}'")
         
@@ -113,26 +107,38 @@ class AStockDataIntegrator:
             return None
         
         try:
-            # 腾讯财经实时行情API
-            url = f"https://qt.gtimg.cn/q={stock_code}"
+            # 确定市场代码（1=沪市，0=深市）
+            market = "1" if stock_code.startswith("6") else "0"
+            
+            url = f"https://push2.eastmoney.com/api/qt/stock/get"
+            params = {
+                "secid": f"{market}.{stock_code}",
+                "fields": "f57,f58,f116,f117,f162,f167"
+            }
             headers = {"User-Agent": "Mozilla/5.0"}
             
-            response = requests.get(url, headers=headers, timeout=10)
-            response.raise_for_status()  # 检查HTTP错误
+            response = requests.get(url, params=params, headers=headers, timeout=10)
+            response.raise_for_status()
             
-            data = response.text.split("~")
-            if len(data) > 45:
+            data = response.json()
+            if data.get("data"):
+                stock_data = data["data"]
+                
+                # f57=代码, f58=名称, f116=总市值, f117=流通市值
+                # f162=PE(动), f167=市净率
+                total_market_cap = stock_data.get("f116", 0) / 100000000  # 转换为亿元
+                
                 return StockBasicInfo(
                     stock_code=stock_code,
-                    stock_name=data[1],
-                    industry=data[0].split("=")[0] if "=" in data[0] else "",
+                    stock_name=stock_data.get("f58", ""),
+                    industry="公用事业",
                     market_type="主板" if stock_code.startswith("6") else "创业板",
-                    market_cap=float(data[45]) if data[45] else 0,
+                    total_shares=0,
+                    float_shares=0,
+                    market_cap=round(total_market_cap, 2),
                 )
-            else:
-                # API返回数据格式异常
-                print(f"警告: API返回数据格式异常，股票代码: {stock_code}")
-                return None
+            
+            return None
                 
         except requests.Timeout:
             print(f"错误: 请求超时，股票代码: {stock_code}")
@@ -143,27 +149,22 @@ class AStockDataIntegrator:
         except requests.RequestException as e:
             print(f"错误: 请求失败 - {e}，股票代码: {stock_code}")
             return None
-        except (IndexError, ValueError) as e:
-            print(f"错误: 解析响应数据失败 - {e}，股票代码: {stock_code}")
+        except Exception as e:
+            print(f"错误: 解析数据失败 - {e}，股票代码: {stock_code}")
             return None
     
     def get_financial_data(self, stock_code: str) -> Optional[FinancialData]:
         """
         获取财务数据
         
-        使用腾讯财经API获取PE/PB
+        使用东方财富API获取PE/PB/市值
         
         Args:
             stock_code: 股票代码，如"600519"
             
         Returns:
             Optional[FinancialData]: 财务数据，失败返回None
-            
-        Raises:
-            TypeError: 当stock_code不是字符串时
-            ValueError: 当stock_code格式无效时
         """
-        # 输入验证
         if not isinstance(stock_code, str):
             raise TypeError(f"stock_code必须是字符串，收到{type(stock_code).__name__}")
         
@@ -177,24 +178,37 @@ class AStockDataIntegrator:
             return None
         
         try:
-            # 腾讯财经估值API
-            url = f"https://qt.gtimg.cn/q={stock_code}"
+            # 确定市场代码
+            market = "1" if stock_code.startswith("6") else "0"
+            
+            url = f"https://push2.eastmoney.com/api/qt/stock/get"
+            params = {
+                "secid": f"{market}.{stock_code}",
+                "fields": "f57,f58,f43,f44,f45,f46,f116,f117,f162,f167"
+            }
             headers = {"User-Agent": "Mozilla/5.0"}
             
-            response = requests.get(url, headers=headers, timeout=10)
+            response = requests.get(url, params=params, headers=headers, timeout=10)
             response.raise_for_status()
             
-            data = response.text.split("~")
-            if len(data) > 45:
+            data = response.json()
+            if data.get("data"):
+                stock_data = data["data"]
+                
+                # f43=最新价(分), f116=总市值, f117=流通市值
+                # f162=PE(动)*100, f167=市净率*100
+                total_market_cap = stock_data.get("f116", 0) / 100000000
+                pe_ttm = stock_data.get("f162", 0) / 100 if stock_data.get("f162") else 0
+                pb = stock_data.get("f167", 0) / 100 if stock_data.get("f167") else 0
+                
                 return FinancialData(
                     stock_code=stock_code,
-                    pe_ttm=float(data[39]) if data[39] else 0,
-                    pb=float(data[46]) if data[46] else 0,
-                    market_cap=float(data[45]) if data[45] else 0,
+                    pe_ttm=round(pe_ttm, 2),
+                    pb=round(pb, 2),
+                    market_cap=round(total_market_cap, 2),
                 )
-            else:
-                print(f"警告: API返回数据格式异常，股票代码: {stock_code}")
-                return None
+            
+            return None
                 
         except requests.Timeout:
             print(f"错误: 请求超时，股票代码: {stock_code}")
@@ -205,8 +219,8 @@ class AStockDataIntegrator:
         except requests.RequestException as e:
             print(f"错误: 请求失败 - {e}，股票代码: {stock_code}")
             return None
-        except (IndexError, ValueError) as e:
-            print(f"错误: 解析响应数据失败 - {e}，股票代码: {stock_code}")
+        except Exception as e:
+            print(f"错误: 解析数据失败 - {e}，股票代码: {stock_code}")
             return None
     
     def get_industry_stocks(self, industry: str) -> List[str]:
