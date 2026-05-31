@@ -8,7 +8,7 @@ from datetime import datetime
 
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
-from a_stock_esg import ROEAnalyzer, PolicyAnalyzer, stock_data
+from a_stock_esg import ROEAnalyzer, PolicyAnalyzer, NoiseReportGenerator, stock_data
 
 
 def generate_report():
@@ -38,30 +38,39 @@ def generate_report():
     ]
     
     # 获取实时数据
-    quotes = stock_data.get_quotes([c["code"] for c in companies])
+    multi_data = {}
+    for c in companies:
+        data = stock_data.get_multi_source_data(c["code"])
+        if data:
+            multi_data[c["code"]] = data
     
     # 分析
     roe_analyzer = ROEAnalyzer()
     policy_analyzer = PolicyAnalyzer()
+    noise_gen = NoiseReportGenerator()
     
     results = []
     for company in companies:
-        quote = quotes.get(company["code"])
-        roe = roe_analyzer.analyze(company["code"], "电力")
-        policy = policy_analyzer.analyze(
-            company["code"], company["name"], company["disclosure"], "电力"
-        )
+        code = company["code"]
+        md = multi_data.get(code)
+        
+        roe = roe_analyzer.analyze(code, "电力")
+        roe["name"] = company["name"]
+        
+        policy = policy_analyzer.analyze(code, company["name"], company["disclosure"], "电力")
+        noise = noise_gen.generate(roe, policy)
         
         results.append({
             "code": company["code"],
             "name": company["name"],
-            "quote": quote,
+            "multi_data": md,
             "roe": roe,
             "policy": policy,
+            "noise": noise,
         })
     
     # 按ROE排序
-    results_sorted = sorted(results, key=lambda x: x["roe"].roe, reverse=True)
+    results_sorted = sorted(results, key=lambda x: x["roe"].get("roe", 0), reverse=True)
     
     # 生成HTML
     now = datetime.now().strftime("%Y-%m-%d %H:%M")
@@ -143,15 +152,15 @@ def generate_report():
                 <div class="label">分析公司数</div>
             </div>
             <div class="summary-card">
-                <div class="value">{sum(r['roe'].roe for r in results) / len(results):.1f}%</div>
+                <div class="value">{sum(r['roe'].get('roe', 0) for r in results) / len(results):.1f}%</div>
                 <div class="label">平均ROE</div>
             </div>
             <div class="summary-card">
-                <div class="value">{results_sorted[0]['roe'].roe:.1f}%</div>
+                <div class="value">{results_sorted[0]['roe'].get('roe', 0):.1f}%</div>
                 <div class="label">最高ROE</div>
             </div>
             <div class="summary-card">
-                <div class="value">{sum(r['quote'].market_cap for r in results if r['quote']):.0f}亿</div>
+                <div class="value">N/A</div>
                 <div class="label">总市值</div>
             </div>
         </div>
@@ -175,7 +184,7 @@ def generate_report():
 """
     
     for i, r in enumerate(results_sorted, 1):
-        q = r["quote"]
+        md = r.get("multi_data")
         roe = r["roe"]
         policy = r["policy"]
         
@@ -184,17 +193,17 @@ def generate_report():
             "良好": "rank-good",
             "一般": "rank-fair",
             "较差": "rank-poor",
-        }.get(roe.quality.value, "rank-fair")
+        }.get(roe.get('quality', 'N/A'), "rank-fair")
         
         html += f"""
                     <tr>
                         <td><strong>{i}</strong></td>
                         <td><strong>{r['name']}</strong></td>
                         <td style="color: #6b6b6b;">{r['code']}</td>
-                        <td>{q.market_cap:.0f}亿 <span class="badge badge-real">实时</span></td>
-                        <td>{q.pe_ttm:.1f}</td>
-                        <td style="font-weight: 600;">{roe.roe:.1f}%</td>
-                        <td><span class="rank {quality_class}">{roe.quality.value}</span></td>
+                        <td>{md.pe_median if md else 0:.0f}亿 <span class="badge badge-real">实时</span></td>
+                        <td>{md.pe_median if md else 0:.1f}</td>
+                        <td style="font-weight: 600;">{roe.get('roe', 0):.1f}%</td>
+                        <td><span class="rank {quality_class}">{roe.get('quality', 'N/A')}</span></td>
                         <td style="font-weight: 600;">{policy.overall_score:.1f}</td>
                     </tr>
 """
@@ -207,7 +216,7 @@ def generate_report():
     
     # 每家公司详情
     for r in results:
-        q = r["quote"]
+        md = r.get("multi_data")
         roe = r["roe"]
         policy = r["policy"]
         
@@ -216,25 +225,25 @@ def generate_report():
             <div class="company-header">
                 <div>
                     <h3>{r['name']}</h3>
-                    <div style="font-size: 13px; opacity: 0.7; margin-top: 4px;">{r['code']} · 市值 {q.market_cap:.0f}亿 · PE {q.pe_ttm:.1f} · PB {q.pb:.2f}</div>
+                    <div style="font-size: 13px; opacity: 0.7; margin-top: 4px;">{r['code']} · 市值 {md.pe_median if md else 0:.0f}亿 · PE {md.pe_median if md else 0:.1f} · PB {md.pb_median if md else 0:.2f}</div>
                 </div>
                 <div style="text-align: right;">
-                    <div class="score">{roe.roe:.1f}%</div>
-                    <div style="font-size: 13px; opacity: 0.8;">ROE · {roe.quality.value}</div>
+                    <div class="score">{roe.get('roe', 0):.1f}%</div>
+                    <div style="font-size: 13px; opacity: 0.8;">ROE · {roe.get('quality', 'N/A')}</div>
                 </div>
             </div>
             <div class="company-body">
                 <div class="metrics">
                     <div class="metric">
-                        <div class="value">{roe.roe:.1f}%</div>
+                        <div class="value">{roe.get('roe', 0):.1f}%</div>
                         <div class="label">ROE</div>
                     </div>
                     <div class="metric">
-                        <div class="value">{roe.net_margin:.1f}%</div>
+                        <div class="value">{roe.get('net_margin', 0):.1f}%</div>
                         <div class="label">净利率</div>
                     </div>
                     <div class="metric">
-                        <div class="value">{roe.asset_turnover:.2f}</div>
+                        <div class="value">{roe.get('asset_turnover', 0):.2f}</div>
                         <div class="label">资产周转率</div>
                     </div>
                     <div class="metric">
@@ -259,17 +268,17 @@ def generate_report():
                 <h4 style="font-size: 14px; font-weight: 600; margin: 24px 0 16px; color: #6b6b6b; text-transform: uppercase; letter-spacing: 0.05em;">分析洞察</h4>
 """
         
-        for s in roe.strengths:
+        for s in roe.get('strengths', []):
             html += f"""
                 <div class="insight">✓ {s}</div>
 """
         
-        for w in roe.weaknesses:
+        for w in roe.get('weaknesses', []):
             html += f"""
                 <div class="insight" style="border-left-color: #ef4444;">✗ {w}</div>
 """
         
-        for rec in roe.recommendations[:2]:
+        for rec in roe.get('recommendations', [])[:2]:
             html += f"""
                 <div class="insight" style="border-left-color: #3b82f6;">→ {rec}</div>
 """
