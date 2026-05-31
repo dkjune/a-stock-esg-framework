@@ -10,6 +10,7 @@ from .core.config import AStockESGConfig
 from .compliance.engine import ComplianceEngine
 from .data.collector import DataCollector
 from .data.parser import DocumentParser
+from .data.astock_integration import AStockDataIntegrator, ESGDataPipeline
 from .nlp.processor import NLPProcessor
 from .visualization.benchmark import BenchmarkAnalyzer
 from .visualization.visualizer import Visualizer
@@ -20,6 +21,8 @@ __all__ = [
     "ComplianceEngine",
     "DataCollector",
     "DocumentParser",
+    "AStockDataIntegrator",
+    "ESGDataPipeline",
     "NLPProcessor",
     "BenchmarkAnalyzer",
     "Visualizer",

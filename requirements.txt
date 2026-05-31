@@ -34,6 +34,11 @@ flask>=2.3.0
 pydantic>=1.10.0
 sqlalchemy>=2.0.0
 
+# A股数据集成（a-stock-data依赖）
+mootdx>=1.0.0
+stockstats>=0.6.0
+requests>=2.28.0
+
 # 开发依赖
 pytest>=7.2.0
 black>=23.0.0

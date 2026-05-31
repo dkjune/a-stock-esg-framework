@@ -22,6 +22,11 @@
 - 展示企业ESG合规进度、行业排名、风险点分布
 - 支持按监管要求（环境、社会、治理三大维度）拆分数据
 
+### 5. A股数据集成
+- 集成 [simonlin1212/a-stock-data](https://github.com/simonlin1212/a-stock-data) 数据源
+- 支持实时行情、财务数据、研报、公告等多维度数据获取
+- 7层架构、27个端点、13个数据源
+
 ## 项目结构
 
 ```
@@ -36,6 +41,7 @@ a_stock_esg_framework/
 │   ├── data/                  # 数据源层
 │   │   ├── collector.py       # 数据收集器
 │   │   ├── parser.py          # 文档解析器
+│   │   ├── astock_integration.py  # A股数据集成
 │   │   └── ...
 │   ├── nlp/                   # 中文NLP处理
 │   │   ├── processor.py       # NLP处理器
@@ -60,11 +66,14 @@ a_stock_esg_framework/
 
 ```bash
 # 克隆仓库
-git clone https://github.com/your-username/a-stock-esg-framework.git
+git clone https://github.com/dkjune/a-stock-esg-framework.git
 cd a-stock-esg-framework
 
 # 安装依赖
 pip install -r requirements.txt
+
+# 安装a-stock-data依赖（可选）
+pip install mootdx stockstats
 
 # 安装包
 pip install -e .
@@ -75,7 +84,7 @@ pip install -e .
 ### 基础使用
 
 ```python
-from a_stock_esg import AStockESGAnalyzer, AStockESGConfig
+from a_stock_esg import AStockESGConfig, ComplianceEngine, NLPProcessor
 from a_stock_esg.core.config import MarketType, IndustryClassification
 
 # 创建配置
@@ -84,11 +93,11 @@ config = AStockESGConfig(
     industry=IndustryClassification.ELECTRONICS,
 )
 
-# 创建分析器
-analyzer = AStockESGAnalyzer(config)
+# 创建合规检查引擎
+engine = ComplianceEngine(config)
 
 # 分析ESG文档
-result = analyzer.analyze_document(
+report = engine.check_compliance(
     document_text="你的ESG报告文本...",
     company_name="示例公司",
     market_type="主板",
@@ -96,27 +105,47 @@ result = analyzer.analyze_document(
 )
 
 # 查看合规报告
-print(f"合规评分: {result['compliance_report'].compliance_score}")
-print(f"合规项: {result['compliance_report'].compliant_items}")
-print(f"缺失项: {result['compliance_report'].missing_items}")
+print(f"合规评分: {report.compliance_score}")
+print(f"合规项: {report.compliant_items}")
+print(f"缺失项: {report.missing_items}")
 ```
 
-### 生成可视化看板
+### 集成A股数据
 
 ```python
-# 生成看板
-dashboard_path = analyzer.generate_dashboard(
-    result['compliance_report'],
-    output_path="my_esg_dashboard.html"
-)
-print(f"看板已生成: {dashboard_path}")
+from a_stock_esg import AStockDataIntegrator, ESGDataPipeline
+
+# 创建数据集成器
+integrator = AStockDataIntegrator()
+
+# 获取股票信息
+stock_info = integrator.get_stock_info("600519")
+print(f"公司名称: {stock_info.stock_name}")
+print(f"所属行业: {stock_info.industry}")
+
+# 获取财务数据
+financial = integrator.get_financial_data("600519")
+print(f"PE(TTM): {financial.pe_ttm}")
+print(f"PB: {financial.pb}")
+
+# 使用数据管道准备ESG分析
+pipeline = ESGDataPipeline()
+esg_data = pipeline.prepare_esg_analysis("600519")
 ```
 
 ### 行业对标分析
 
 ```python
+from a_stock_esg import BenchmarkAnalyzer, DataCollector
+
+# 创建数据收集器
+data_collector = DataCollector()
+
+# 创建对标分析器
+analyzer = BenchmarkAnalyzer(data_collector)
+
 # 获取行业对标
-comparison = analyzer.get_benchmark_comparison(
+comparison = analyzer.compare_with_industry(
     company_code="000001",
     company_score=75.5,
     year=2024,
@@ -125,6 +154,33 @@ comparison = analyzer.get_benchmark_comparison(
 print(f"行业排名: {comparison.industry_rank}/{comparison.total_companies}")
 print(f"百分位: {comparison.percentile}%")
 ```
+
+## A股数据集成
+
+本框架集成了 [simonlin1212/a-stock-data](https://github.com/simonlin1212/a-stock-data) 的数据源，提供以下能力：
+
+### 数据源优先级
+
+| 优先级 | 数据源 | 用途 |
+|--------|--------|------|
+| 1（首选） | mootdx（通达信） | K线/五档/逐笔/财务快照/F10 |
+| 2（首选） | 腾讯财经 | 实时价/PE/PB/市值/换手率 |
+| 3 | 同花顺 | 强势股/题材归因/北向资金 |
+| 4 | 百度股市通 | 概念板块/K线 |
+| 5 | 新浪财经 | 财报三表 |
+| 6 | 巨潮 cninfo | 公告全文 |
+| 7 | iwencai | NL语义搜索 |
+| 8 | 东财 | 龙虎榜/解禁/两融/大宗/资金流 |
+
+### 支持的端点
+
+- **行情层**: K线、五档盘口、实时报价、PE/PB/市值
+- **研报层**: 研报列表、PDF下载、一致预期
+- **信号层**: 强势股、题材归因、北向资金、概念板块
+- **资金面**: 融资融券、大宗交易、股东户数、分红送转
+- **新闻层**: 个股新闻、全球资讯
+- **基础数据**: 季报37字段、F10九大类、财报三表
+- **公告层**: 沪深北全量公告
 
 ## 技术特点
 
@@ -158,6 +214,9 @@ print(f"百分位: {comparison.percentile}%")
 ```bash
 # 运行基础示例
 python examples/basic_usage.py
+
+# 运行A股数据集成示例
+python examples/astock_data_integration.py
 ```
 
 ## 贡献

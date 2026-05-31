@@ -10,6 +10,12 @@ from .collector import (
     RegulatoryStandard,
 )
 from .parser import DocumentParser, ParsedDocument
+from .astock_integration import (
+    AStockDataIntegrator,
+    ESGDataPipeline,
+    StockBasicInfo,
+    FinancialData,
+)
 
 __all__ = [
     "DataCollector",
@@ -19,4 +25,8 @@ __all__ = [
     "RegulatoryStandard",
     "DocumentParser",
     "ParsedDocument",
+    "AStockDataIntegrator",
+    "ESGDataPipeline",
+    "StockBasicInfo",
+    "FinancialData",
 ]
