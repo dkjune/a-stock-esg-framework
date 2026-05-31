@@ -28,7 +28,7 @@ from .compliance import (
 # 数据源
 from .data.collector import DataCollector
 from .data.parser import DocumentParser
-from .data.astock_integration import AStockDataIntegrator, ESGDataPipeline
+from .data.astock_integration import AStockDataIntegrator
 
 # NLP处理
 from .nlp.processor import NLPProcessor
@@ -70,7 +70,6 @@ __all__ = [
     "DataCollector",
     "DocumentParser",
     "AStockDataIntegrator",
-    "ESGDataPipeline",
     # NLP处理
     "NLPProcessor",
     # 可视化

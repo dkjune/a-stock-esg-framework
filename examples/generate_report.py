@@ -40,25 +40,28 @@ def fetch_real_data(stock_code: str):
 def get_market_data(stock_code: str):
     """获取市场数据（优先API，失败则用合理估算）"""
     try:
-        stock_info, financial = fetch_real_data(stock_code)
-        if stock_info and financial:
+        integrator = AStockDataIntegrator()
+        info = integrator.get_stock_info(stock_code)
+        if info:
             return {
-                "name": stock_info.stock_name,
-                "market_cap": financial.market_cap,
-                "pe_ttm": financial.pe_ttm,
-                "pb": financial.pb,
+                "name": info.stock_name,
+                "market_cap": info.market_cap,
+                "pe_ttm": info.pe_ttm,
+                "pb": info.pb,
+                "price": info.price,
+                "change_pct": info.change_pct,
                 "source": "real"
             }
     except Exception as e:
-        pass
+        print(f"  API获取失败: {e}")
     
-    # 基于公开信息的合理估算数据（2024年数据）
+    # 基于公开信息的合理估算数据
     market_data = {
-        "600886": {"name": "国投电力", "market_cap": 680, "pe_ttm": 12.5, "pb": 1.8, "source": "estimated"},
-        "600863": {"name": "华能蒙电", "market_cap": 320, "pe_ttm": 8.2, "pb": 1.2, "source": "estimated"},
-        "600011": {"name": "华能国际", "market_cap": 1250, "pe_ttm": 10.8, "pb": 1.5, "source": "estimated"},
+        "600886": {"name": "国投电力", "market_cap": 1065.95, "pe_ttm": 15.4, "pb": 1.66, "price": 14.3, "source": "estimated"},
+        "600863": {"name": "华能蒙电", "market_cap": 476.46, "pe_ttm": 25.24, "pb": 2.74, "price": 7.3, "source": "estimated"},
+        "600011": {"name": "华能国际", "market_cap": 975.5, "pe_ttm": 10.0, "pb": 1.99, "price": 8.87, "source": "estimated"},
     }
-    return market_data.get(stock_code, {"name": "未知", "market_cap": 0, "pe_ttm": 0, "pb": 0, "source": "none"})
+    return market_data.get(stock_code, {"name": "未知", "market_cap": 0, "pe_ttm": 0, "pb": 0, "price": 0, "source": "none"})
 
 
 def generate_html_report():
