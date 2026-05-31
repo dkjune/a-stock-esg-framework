@@ -135,8 +135,11 @@ class AStockData:
         """
         获取财务快照（从估值指标推算）
         
-        ROE = PB / PE * 100
-        净利率 = 1 / PE * 100 / 4 (假设年化)
+        基于杜邦分析法推算：
+        - ROE = PB / PE * 100
+        - 净利率 = ROE / (资产周转率 × 权益乘数)
+        - 资产周转率 = 营收 / 总资产
+        - 权益乘数 = 总资产 / 股东权益 = 1 / (1 - 负债率)
         
         Args:
             code: 股票代码
@@ -148,26 +151,49 @@ class AStockData:
         if not quote or quote.pe_ttm <= 0 or quote.pb <= 0:
             return None
         
-        # 基于估值指标推算ROE
-        # ROE = 净利润/股东权益 = (市值/PE) / (市值/PB) = PB/PE
+        # ROE = PB / PE * 100
         roe = (quote.pb / quote.pe_ttm) * 100
         
-        # 推算净利率（简化假设）
-        # 净利率 ≈ 1/PE * 100 * (1/资产周转率) / 权益乘数
-        net_margin = (1 / quote.pe_ttm) * 100 * 0.5  # 简化系数
+        # 电力行业经验值（基于实际财报数据）
+        # 不同电力公司特征不同：
+        # - 水电（长江电力）：高净利率、低周转、低杠杆
+        # - 火电（华能国际）：低净利率、中周转、中杠杆
+        # - 综合（国投电力、华能蒙电）：中净利率、中周转、中杠杆
         
-        # 推算资产周转率（行业经验）
-        asset_turnover = 0.6  # 默认值，实际应从财务数据获取
+        industry_defaults = {
+            "600900": {"net_margin": 42.0, "asset_turnover": 0.15, "debt_ratio": 35.0},  # 长江电力：水电龙头
+            "600011": {"net_margin": 8.0, "asset_turnover": 0.45, "debt_ratio": 55.0},   # 华能国际：火电为主
+            "600886": {"net_margin": 18.0, "asset_turnover": 0.25, "debt_ratio": 50.0},  # 国投电力：水火并济
+            "600863": {"net_margin": 12.0, "asset_turnover": 0.30, "debt_ratio": 48.0},  # 华能蒙电：区域电力
+        }
         
-        # 推算负债率（基于PB和ROE关系）
-        debt_ratio = 45.0  # 默认值
+        defaults = industry_defaults.get(code, {
+            "net_margin": 15.0,
+            "asset_turnover": 0.30,
+            "debt_ratio": 50.0,
+        })
+        
+        # 先用默认值
+        asset_turnover = defaults["asset_turnover"]
+        debt_ratio = defaults["debt_ratio"]
+        
+        # 权益乘数 = 1 / (1 - 负债率/100)
+        equity_multiplier = 1 / (1 - debt_ratio / 100) if debt_ratio < 100 else 2.0
+        
+        # 根据ROE反推净利率
+        # ROE = 净利率 × 资产周转率 × 权益乘数
+        # 净利率 = ROE / (资产周转率 × 权益乘数)
+        net_margin = roe / (asset_turnover * equity_multiplier)
+        
+        # ROA = ROE × (1 - 负债率)
+        roa = roe * (1 - debt_ratio / 100)
         
         return FinancialSnapshot(
             code=code,
             roe=round(roe, 2),
-            roa=round(roe * 0.6, 2),  # ROA通常比ROE低
+            roa=round(roa, 2),
             net_margin=round(net_margin, 2),
-            gross_margin=28.0,
+            gross_margin=round(net_margin * 2.5, 2),  # 毛利率通常比净利率高
             debt_ratio=debt_ratio,
             asset_turnover=asset_turnover,
             current_ratio=1.2,
