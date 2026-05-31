@@ -1,11 +1,28 @@
-NOTICE - A股ESG分析框架
+NOTICE - A股中特估分析框架
 
-This product includes software developed by Simon 林
+This product includes software developed by Simon Lin
 (https://github.com/simonlin1212/a-stock-data)
 
 a-stock-data: A股全栈数据工具包
+Version: V3.2.1
 License: Apache License 2.0
-Copyright: Simon 林
+Copyright: Copyright 2026 Simon Lin
+
+===========================================================================
+
+本项目参考了 a-stock-data 的以下设计理念（不包含源代码）：
+
+1. 数据源优先级原则
+   - 优先使用腾讯财经API（不封IP）
+   - 东财API仅用于独有数据，需限流
+
+2. 行情数据获取方式
+   - 腾讯财经API: https://qt.gtimg.cn/q={code}
+   - 返回字段索引（PE/PB/市值等）
+
+3. 东财防封机制
+   - 统一限流入口
+   - 串行请求 + 随机抖动
 
 ===========================================================================
 
